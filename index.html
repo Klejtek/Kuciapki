@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sklep z Aromatami</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Sklep z Aromatami</div>
+        <nav>
+            <ul>
+                <li><a href="#home">Strona Główna</a></li>
+                <li><a href="#shop">Sklep</a></li>
+                <li><a href="#about">O Nas</a></li>
+                <li><a href="#contact">Kontakt</a></li>
+                <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
+            </ul>
+        </nav>
+        <div id="user-greeting"></div>
+        <button id="logout-button">Wyloguj</button>
+    </header>
+
+    <main>
+        <section id="home">
+            <h1>Witaj w naszym sklepie!</h1>
+            <p>Oferujemy szeroki wybór aromatów. Sprawdź nasze produkty!</p>
+            <a href="#shop" class="button">Zobacz Produkty</a>
+        </section>
+
+        <section id="shop">
+            <h2>Nasze Produkty</h2>
+            <div class="product-grid">
+		    <div class="product">
+                    <img src="images/apple-peach-pear.webp" alt="Banana Ice">
+                    <h3>Apple Peach Pear</h3>
+                    <button onclick="addToCart('Apple Peach Pear')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/banana-ice.webp" alt="Banana Ice">
+                    <h3>Banana Ice</h3>
+                    <button onclick="addToCart('Banana Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/blue-razz-lemonade.webp" alt="Blue Razz Lemonade">
+                    <h3>Blue Razz Lemonade</h3>
+                    <button onclick="addToCart('Blue Razz Lemonade')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/blueberry-on-ice.webp" alt="Blueberry On Ice">
+                    <h3>Blueberry On Ice</h3>
+                    <button onclick="addToCart('Blueberry On Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/blueberry-raspberry.webp" alt="Blueberry Raspberry">
+                    <h3>Blueberry Raspberry</h3>
+                    <button onclick="addToCart('Blueberry Raspberry')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/cherry-cola.webp" alt="Cherry Cola">
+                    <h3>Cherry Cola</h3>
+                    <button onclick="addToCart('Cherry Cola')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/cola-ice.webp" alt="Cola Ice">
+                    <h3>Cola Ice</h3>
+                    <button onclick="addToCart('Cola Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/dragon-fruit.webp" alt="Dragon Fruit">
+                    <h3>Dragon Fruit</h3>
+                    <button onclick="addToCart('Dragon Fruit')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/grape-ice.webp" alt="Grape Ice">
+                    <h3>Grape Ice</h3>
+                    <button onclick="addToCart('Grape Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/ice-pop.webp" alt="Ice Pop">
+                    <h3>Ice Pop</h3>
+                    <button onclick="addToCart('Ice Pop')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/kiwi-passion-fruit-guava.webp" alt="Kiwi Passion Fruit Guava">
+                    <h3>Kiwi Passion Fruit Guava</h3>
+                    <button onclick="addToCart('Kiwi Passion Fruit Guava')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/lemon-lime.webp" alt="Lemon & Lime">
+                    <h3>Lemon & Lime</h3>
+                    <button onclick="addToCart('Lemon & Lime')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/mixed-berry.webp" alt="Mixed Berry">
+                    <h3>Mixed Berry</h3>
+                    <button onclick="addToCart('Mixed Berry')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/mr-blue.webp" alt="Mr Blue">
+                    <h3>Mr Blue</h3>
+                    <button onclick="addToCart('Mr Blue')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/peach-blueberry-candy.webp" alt="Peach Blueberry Candy">
+                    <h3>Peach Blueberry Candy</h3>
+                    <button onclick="addToCart('Peach Blueberry Candy')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/peach-ice.webp" alt="Peach Ice">
+                    <h3>Peach Ice</h3>
+                    <button onclick="addToCart('Peach Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/peach-mango.webp" alt="Peach Mango">
+                    <h3>Peach Mango</h3>
+                    <button onclick="addToCart('Peach Mango')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/pink-lemonade.webp" alt="Pink Lemonade">
+                    <h3>Pink Lemonade</h3>
+                    <button onclick="addToCart('Pink Lemonade')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/sour-apple.webp" alt="Sour Apple">
+                    <h3>Sour Apple</h3>
+                    <button onclick="addToCart('Sour Apple')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/strawberry-banana.webp" alt="Strawberry Banana">
+                    <h3>Strawberry Banana</h3>
+                    <button onclick="addToCart('Strawberry Banana')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/strawberry-ice.webp" alt="Strawberry Ice">
+                    <h3>Strawberry Ice</h3>
+                    <button onclick="addToCart('Strawberry Ice')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/strawberry-red-bull.webp" alt="Strawberry Red Bull">
+                    <h3>Strawberry Red Bull</h3>
+                    <button onclick="addToCart('Strawberry Red Bull')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/strawberry-watermelon.webp" alt="Strawberry Watermelon">
+                    <h3>Strawberry Watermelon</h3>
+                    <button onclick="addToCart('Strawberry Watermelon')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/triple-berry.webp" alt="Triple Berry">
+                    <h3>Triple Berry</h3>
+                    <button onclick="addToCart('Triple Berry')">Dodaj do koszyka</button>
+                </div>
+                <div class="product">
+                    <img src="images/watermelon-ice.webp" alt="Watermelon Ice">
+                    <h3>Watermelon Ice</h3>
+                    <button onclick="addToCart('Watermelon Ice')">Dodaj do koszyka</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="about">
+            <h2>O Nas</h2>
+            <p>Jesteśmy pasjonatami aromatów i oferujemy najwyższej jakości produkty dla naszych klientów.</p>
+        </section>
+
+        <section id="contact">
+            <h2>Kontakt</h2>
+            <form id="contact-form">
+                <label for="name">Imię:</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="message">Wiadomość:</label>
+                <textarea id="message" name="message" required></textarea>
+
+                <button type="submit">Wyślij</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

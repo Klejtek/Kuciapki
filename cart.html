@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koszyk - Sklep z Aromatami</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Sklep z Aromatami</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Strona Główna</a></li>
+                <li><a href="index.html#shop">Sklep</a></li>
+                <li><a href="index.html#about">O Nas</a></li>
+                <li><a href="index.html#contact">Kontakt</a></li>
+                <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="cart">
+            <h2>Twój Koszyk</h2>
+            <div id="cart-items"></div>
+            <p><strong>Suma: <span id="total-quantity">0</span> produktów</strong></p>
+            <button onclick="clearCart()">Wyczyść Koszyk</button>
+
+            <!-- Formularz zamówienia -->
+            <form id="order-form" action="https://formspree.io/f/mqazbpzw" method="POST">
+                <input type="hidden" name="products" id="form-products">
+                <input type="hidden" name="total" id="form-total">
+                <input type="hidden" name="email" id="user-email"> <!-- Ukryte pole na login użytkownika -->
+                <button type="submit">Zamów</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
