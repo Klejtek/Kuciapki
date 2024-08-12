@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sklep z Aromatami</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        // Sprawdzenie, czy użytkownik jest zalogowany
+        const username = localStorage.getItem('username');
+
+        if (!username) {
+            // Jeśli użytkownik nie jest zalogowany, przekieruj na stronę logowania
+            window.location.href = 'login.html';
+        }
+    </script>
 </head>
 <body>
     <header>
@@ -20,6 +29,11 @@
         </nav>
         <div id="user-greeting"></div>
         <button id="logout-button">Wyloguj</button>
+        
+        <!-- Dodany element licznika sesji -->
+        <div id="session-timer" style="position: absolute; top: 10px; right: 10px; background-color: #000; color: #fff; padding: 5px; border: 1px solid #ccc; border-radius: 5px;">
+            Pozostały czas sesji: <span id="time-remaining">15:00</span>
+        </div>
     </header>
 
     <main>
@@ -32,11 +46,6 @@
         <section id="shop">
             <h2>Nasze Produkty</h2>
             <div class="product-grid">
-		    <div class="product">
-                    <img src="images/apple-peach-pear.webp" alt="Banana Ice">
-                    <h3>Apple Peach Pear</h3>
-                    <button onclick="addToCart('Apple Peach Pear')">Dodaj do koszyka</button>
-                </div>
                 <div class="product">
                     <img src="images/banana-ice.webp" alt="Banana Ice">
                     <h3>Banana Ice</h3>
@@ -186,6 +195,18 @@
         <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
     </footer>
 
+    <!-- Dodaj kontener na powiadomienia tutaj -->
+    <div id="notification" style="position: fixed; bottom: 10px; right: 10px; background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px; display: none; align-items: center;">
+        <span id="notification-icon" style="margin-right: 10px;">✔️</span>
+        <span id="notification-text">Dodano do koszyka</span>
+    </div>
+
+    <div id="floating-cart" style="position: fixed; bottom: 10px; left: 10px; background-color: #333; color: white; padding: 10px; border-radius: 5px; display: none;">
+    Koszyk: <span id="floating-cart-count">0</span>
+    </div>
+
+
+    <!-- Skrypt JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
