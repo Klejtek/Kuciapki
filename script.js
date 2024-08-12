@@ -82,6 +82,9 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(cartKey, JSON.stringify(cart));
         console.log('Updated cart:', cart);
         updateCartCount();
+
+        // Pokaż powiadomienie
+        showNotification('Dodano do koszyka');
     }
 
     function updateCartCount() {
@@ -89,10 +92,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
         const count = cart.reduce((sum, item) => sum + item.quantity, 0);
         const cartCountElement = document.getElementById('cart-count');
+        const floatingCartCountElement = document.getElementById('floating-cart-count');
+
         if (cartCountElement) {
             cartCountElement.textContent = count;
         }
+        if (floatingCartCountElement) {
+            floatingCartCountElement.textContent = count;
+        }
+
         console.log('Updated cart count:', count);
+        checkCartVisibility(); // Sprawdzenie widoczności licznika
     }
 
     function displayCart() {
@@ -107,10 +117,30 @@ document.addEventListener('DOMContentLoaded', function() {
             cart.forEach((item, index) => {
                 const cartItem = document.createElement('div');
                 cartItem.classList.add('cart-item');
-                cartItem.innerHTML = `
-                    <p>${item.name} - ilość: ${item.quantity}</p>
-                    <button onclick="window.removeFromCart(${index})">Usuń</button>
-                `;
+                cartItem.style.display = 'flex';
+                cartItem.style.alignItems = 'center';
+
+                // Dodanie miniaturki zdjęcia
+                const productImage = document.createElement('img');
+                productImage.src = `images/${item.name.toLowerCase().replace(/ /g, '-')}.webp`; // Nazwa obrazka na podstawie nazwy produktu
+                productImage.alt = item.name;
+                productImage.style.width = '50px';
+                productImage.style.height = '50px';
+                productImage.style.marginRight = '10px';
+
+                // Dodanie tekstu z nazwą i ilością
+                const productInfo = document.createElement('p');
+                productInfo.textContent = `${item.name} - ilość: ${item.quantity}`;
+
+                // Dodanie przycisku usuwania
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Usuń';
+                removeButton.onclick = () => removeFromCart(index);
+
+                // Dodanie elementów do kontenera pozycji koszyka
+                cartItem.appendChild(productImage);
+                cartItem.appendChild(productInfo);
+                cartItem.appendChild(removeButton);
                 cartItemsContainer.appendChild(cartItem);
             });
 
@@ -180,4 +210,83 @@ document.addEventListener('DOMContentLoaded', function() {
     displayUserGreeting();
     displayCart();
     updateCartCount();
+
+    // --- Nowy kod: Automatyczne wylogowanie po 15 minutach braku aktywności z licznikiem ---
+    function logoutUser() {
+        alert('Twoja sesja wygasła. Zostaniesz teraz wylogowany.');
+        localStorage.removeItem('username');
+        window.location.href = 'login.html';
+    }
+
+    let logoutTimer;
+    let remainingTime = 15 * 60; // 15 minut w sekundach
+
+    function resetLogoutTimer() {
+        clearTimeout(logoutTimer);
+        remainingTime = 15 * 60; // Resetowanie czasu do 15 minut
+        updateTimerDisplay(); // Aktualizacja licznika
+        logoutTimer = setTimeout(logoutUser, remainingTime * 1000);
+    }
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(remainingTime / 60);
+        const seconds = remainingTime % 60;
+        const timeDisplay = document.getElementById('time-remaining');
+        if (timeDisplay) {
+            timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    // Aktualizacja licznika co sekundę
+    setInterval(function() {
+        if (remainingTime > 0) {
+            remainingTime--;
+            updateTimerDisplay();
+        }
+    }, 1000);
+
+    window.addEventListener('mousemove', resetLogoutTimer);
+    window.addEventListener('keydown', resetLogoutTimer);
+    window.addEventListener('scroll', resetLogoutTimer);
+    window.addEventListener('click', resetLogoutTimer);
+
+    resetLogoutTimer(); // Uruchomienie timera po załadowaniu strony
+
+    // Funkcja do wyświetlania powiadomień
+    function showNotification(message) {
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+
+        if (notification && notificationText) {
+            notificationText.textContent = message;
+            notification.style.display = 'flex';
+            notification.style.opacity = '1';
+
+            // Ukrycie powiadomienia po 3 sekundach
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 500); // Czas na zakończenie animacji zanikania
+            }, 3000); // Czas wyświetlania powiadomienia (3 sekundy)
+        }
+    }
+
+    // Funkcja do sprawdzania widoczności licznika koszyka
+    function checkCartVisibility() {
+        const cartCountElement = document.getElementById('cart-count');
+        const floatingCart = document.getElementById('floating-cart');
+        const rect = cartCountElement.getBoundingClientRect();
+
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+            floatingCart.style.display = 'block'; // Pokazuj licznik w rogu
+        } else {
+            floatingCart.style.display = 'none'; // Ukryj licznik w rogu
+        }
+    }
+
+    // Nasłuchiwanie na przewijanie strony, aby sprawdzać widoczność licznika koszyka
+    window.addEventListener('scroll', function() {
+        checkCartVisibility();
+    });
 });
