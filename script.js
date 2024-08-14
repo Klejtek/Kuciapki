@@ -52,8 +52,37 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('load', function() {
         let users = JSON.parse(localStorage.getItem('users')) || [];
         const defaultUsers = [
-            { username: 'MKL', password: '12345' },
-            { username: 'MKL2', password: '12345' }
+            { username: 'ASZ', password: 'wPo3lN2m' },
+            { username: 'DAD', password: 'k8Aq7P4r' },
+            { username: 'BAN', password: 'L6r9Gq5T' },
+            { username: 'GWK', password: 'yZ1p3O6a' },
+            { username: 'WPT', password: 'J8w6Lr4U' },
+            { username: 'GAK', password: 't3A9kQ2M' },
+            { username: 'IZKA', password: 'M5s7Yp4R' },
+            { username: 'KBU', password: 'P4k8Tq3W' },
+            { username: 'DAF', password: 'Z6j2p7VQ' },
+            { username: 'SMA', password: 'R8m1p5Tq' },
+            { username: 'LUC', password: 'W7t9Q2mK' },
+            { username: 'KMC', password: 'X3v6Pq7A' },
+            { username: 'MBR', password: 'H9t2L8wQ' },
+            { username: 'RSY', password: 'G6m8R4kP' },
+            { username: 'MML', password: 'J5w9K7pT' },
+            { username: 'OBR', password: 'T8k3Yq2L' },
+            { username: 'DIMA', password: 'K4p7M9rQ' },
+            { username: 'DAGA', password: 'Q2m6J8tP' },
+            { username: 'KAD', password: 'N5r9L4tQ' },
+            { username: 'JBL', password: 'V7q3P6kM' },
+            { username: 'JBL 2', password: 'L8t2Q5wK' },
+            { username: 'JBL 3', password: 'Y9m4P7rT' },
+            { username: 'CHM', password: 'Q6p1L8kM' },
+            { username: 'MAL', password: 'R5t9K3wQ' },
+            { username: 'NAD', password: 'Z7m2P4qT' },
+            { username: 'PVI', password: 'X8t6Q2mK' },
+            { username: 'VLR', password: 'K9p5L7rT' },
+            { username: 'KBL', password: 'T3w8Q6pM' },
+            { username: 'PMA', password: 'W4m9P2kT' },
+            { username: 'CCA', password: 'Q7k3T5pL' },
+            { username: 'JGO', password: 'P6m4L8rQ' }
         ];
 
         defaultUsers.forEach(defaultUser => {
@@ -120,9 +149,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 cartItem.style.display = 'flex';
                 cartItem.style.alignItems = 'center';
 
+                let imageName = item.name.toLowerCase().replace(/ /g, '-').replace(/&/g, 'and');
+
                 // Dodanie miniaturki zdjęcia
                 const productImage = document.createElement('img');
-                productImage.src = `images/${item.name.toLowerCase().replace(/ /g, '-')}.webp`; // Nazwa obrazka na podstawie nazwy produktu
+                productImage.src = `images/${imageName}.webp`; // Nazwa obrazka na podstawie zmodyfikowanej nazwy produktu
                 productImage.alt = item.name;
                 productImage.style.width = '50px';
                 productImage.style.height = '50px';
@@ -137,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 removeButton.textContent = 'Usuń';
                 removeButton.onclick = () => removeFromCart(index);
 
-                // Dodanie elementów do kontenera pozycji koszyka
                 cartItem.appendChild(productImage);
                 cartItem.appendChild(productInfo);
                 cartItem.appendChild(removeButton);
@@ -178,6 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderForm = document.getElementById('order-form');
     if (orderForm) {
         orderForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Zapobiega domyślnemu wysłaniu formularza
+
             const cartKey = getCartKey();
             const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
             const products = cart.map(item => `${item.name} (ilość: ${item.quantity})`).join(', ');
@@ -186,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('form-products').value = products;
             document.getElementById('form-total').value = total;
 
-            // Wypełnienie ukrytego pola loginem użytkownika jako fikcyjny email
             const username = localStorage.getItem('username');
             const fakeEmail = `${username}@example.com`;  // Fikcyjny email
             document.getElementById('user-email').value = fakeEmail;
@@ -197,21 +228,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Wyczyść koszyk po wysłaniu zamówienia
             clearCart();
+
+            // Wysyłanie zamówienia do API
+            sendOrderToAPI(username, cart);
         });
     }
 
-    // Obsługa przycisku wylogowania
+    function sendOrderToAPI(username, cart) {
+        fetch('http://192.168.55.124:3000/api/orders', {  // Zastąp 'YOUR_SERVER_IP' rzeczywistym IP serwera
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customerName: username,
+                items: cart
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Order sent to API:', data);
+            showNotification('Zamówienie zostało wysłane!');
+        })
+        .catch(error => {
+            console.error('Error sending order to API:', error);
+            showNotification('Błąd podczas wysyłania zamówienia.');
+        });
+    }
+
     const logoutButton = document.getElementById('logout-button');
     if (logoutButton) {
         logoutButton.addEventListener('click', logout);
     }
 
-    // Wywołanie funkcji po załadowaniu strony
     displayUserGreeting();
     displayCart();
     updateCartCount();
 
-    // --- Nowy kod: Automatyczne wylogowanie po 15 minutach braku aktywności z licznikiem ---
     function logoutUser() {
         alert('Twoja sesja wygasła. Zostaniesz teraz wylogowany.');
         localStorage.removeItem('username');
@@ -219,12 +272,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     let logoutTimer;
-    let remainingTime = 15 * 60; // 15 minut w sekundach
+    let remainingTime = 15 * 60;
 
     function resetLogoutTimer() {
         clearTimeout(logoutTimer);
-        remainingTime = 15 * 60; // Resetowanie czasu do 15 minut
-        updateTimerDisplay(); // Aktualizacja licznika
+        remainingTime = 15 * 60;
+        updateTimerDisplay();
         logoutTimer = setTimeout(logoutUser, remainingTime * 1000);
     }
 
@@ -237,7 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Aktualizacja licznika co sekundę
     setInterval(function() {
         if (remainingTime > 0) {
             remainingTime--;
@@ -250,9 +302,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', resetLogoutTimer);
     window.addEventListener('click', resetLogoutTimer);
 
-    resetLogoutTimer(); // Uruchomienie timera po załadowaniu strony
+    resetLogoutTimer();
 
-    // Funkcja do wyświetlania powiadomień
     function showNotification(message) {
         const notification = document.getElementById('notification');
         const notificationText = document.getElementById('notification-text');
@@ -262,30 +313,27 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.style.display = 'flex';
             notification.style.opacity = '1';
 
-            // Ukrycie powiadomienia po 3 sekundach
             setTimeout(() => {
                 notification.style.opacity = '0';
                 setTimeout(() => {
                     notification.style.display = 'none';
-                }, 500); // Czas na zakończenie animacji zanikania
-            }, 3000); // Czas wyświetlania powiadomienia (3 sekundy)
+                }, 500);
+            }, 3000);
         }
     }
 
-    // Funkcja do sprawdzania widoczności licznika koszyka
     function checkCartVisibility() {
         const cartCountElement = document.getElementById('cart-count');
         const floatingCart = document.getElementById('floating-cart');
         const rect = cartCountElement.getBoundingClientRect();
 
         if (rect.bottom < 0 || rect.top > window.innerHeight) {
-            floatingCart.style.display = 'block'; // Pokazuj licznik w rogu
+            floatingCart.style.display = 'block';
         } else {
-            floatingCart.style.display = 'none'; // Ukryj licznik w rogu
+            floatingCart.style.display = 'none';
         }
     }
 
-    // Nasłuchiwanie na przewijanie strony, aby sprawdzać widoczność licznika koszyka
     window.addEventListener('scroll', function() {
         checkCartVisibility();
     });
