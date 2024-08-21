@@ -179,13 +179,14 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // Wyślij zamówienie do serwera za pomocą fetch
-        fetch('https://kuciapki.onrender.com/orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderData)
-        })
+      fetch('https://kuciapki.onrender.com/orders', {  // Zamień na właściwy URL twojego API na Renderze
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(orderData)
+})
+
         .then(response => {
             if (!response.ok) {
                 throw new Error('Błąd sieci');
