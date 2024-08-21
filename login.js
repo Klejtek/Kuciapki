@@ -12,28 +12,15 @@ document.getElementById('login-form').addEventListener('submit', function(event)
         if (user) {
             localStorage.setItem('username', username);
             alert('Zalogowano jako ' + username);
-            window.location.href = 'index.html'; // Przekierowanie na stronę główną
+
+            // Sprawdzenie, czy użytkownik to MKL
+            if (username === 'MKL') {
+                window.location.href = 'admin.html';  // Przekierowanie do widoku administratora
+            } else {
+                window.location.href = 'index.html';  // Przekierowanie do strony głównej
+            }
         } else {
             alert('Nieprawidłowy login lub hasło!');
         }
     }
-});
-
-// Dodanie domyślnych użytkowników, jeśli nie istnieją
-window.addEventListener('load', function() {
-    let users = JSON.parse(localStorage.getItem('users')) || [];
-    
-    // Lista domyślnych użytkowników
-    const defaultUsers = [
-        { username: 'MKL', password: '12345' },
-        { username: 'MKL2', password: '12345' }
-    ];
-
-    defaultUsers.forEach(defaultUser => {
-        if (!users.some(user => user.username === defaultUser.username)) {
-            users.push(defaultUser);
-        }
-    });
-
-    localStorage.setItem('users', JSON.stringify(users));
 });
