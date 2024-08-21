@@ -40,11 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('username', username);
                     alert('Zalogowano jako ' + username);
 
-                    // Sprawdzenie czy zalogowano jako MKL
                     if (username === 'MKL') {
-                        window.location.href = 'admin.html'; // Przekierowanie do panelu MKL
+                        window.location.href = 'admin.html';
                     } else {
-                        window.location.href = 'index.html'; // Przekierowanie na stronę główną
+                        window.location.href = 'index.html';
                     }
                 } else {
                     alert('Nieprawidłowy login lub hasło!');
@@ -58,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const defaultUsers = [
             { username: 'ASZ', password: 'wPo3lN2m' },
             { username: 'DAD', password: 'k8Aq7P4r' },
-            { username: 'MKL', password: '12345' } // Dodanie MKL
+            { username: 'MKL', password: '12345' }
         ];
 
         defaultUsers.forEach(defaultUser => {
@@ -165,12 +164,12 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCartCount();
     }
 
-    // Funkcja do przesyłania zamówień do MKL (localStorage)
+    // Zaktualizowana funkcja submitOrder do wysyłania zamówień na serwer
     function submitOrder() {
         const cartKey = getCartKey();
         const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
-        const username = localStorage.getItem('username');
+        const username = localStorage.getItem('username') || 'Anonimowy użytkownik';
         const orderData = {
             customerName: username,
             items: cart.map(item => ({
@@ -179,26 +178,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }))
         };
 
-        // Pobranie istniejących zamówień z localStorage
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-
-        // Dodanie nowego zamówienia do listy zamówień
-        orders.push(orderData);
-
-        // Zapisanie listy zamówień z powrotem do localStorage
-        localStorage.setItem('orders', JSON.stringify(orders));
-
-        // Po złożeniu zamówienia wyczyszczenie koszyka
-        clearCart();
-        alert('Zamówienie zostało złożone!');
+        // Wyślij zamówienie do serwera za pomocą fetch
+        fetch('http://192.168.55.124:3000/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Błąd sieci');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Zamówienie zostało złożone!', data);
+            clearCart(); // Opróżnij koszyk po złożeniu zamówienia
+            alert('Zamówienie zostało złożone!');
+        })
+        .catch(error => {
+            console.error('Błąd podczas składania zamówienia:', error);
+            alert('Wystąpił błąd podczas składania zamówienia.');
+        });
     }
 
     const orderForm = document.getElementById('order-form');
     if (orderForm) {
         orderForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            submitOrder(); // Zapisanie zamówienia do localStorage
-            window.location.href = 'index.html'; // Przekierowanie po złożeniu zamówienia
+            event.preventDefault(); // Zablokowanie domyślnego zachowania formularza
+            submitOrder(); // Wysłanie zamówienia do serwera
         });
     }
 

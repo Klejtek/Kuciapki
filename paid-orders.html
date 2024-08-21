@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zamówienia Opłacone - Sklep z Aromatami</title>
+    <title>Panel Administratora - Zamówienia Opłacone</title>
     <link rel="stylesheet" href="style.css">
     <script>
         // Sprawdzenie, czy użytkownik to MKL
@@ -15,7 +15,7 @@
 </head>
 <body>
     <header>
-        <div class="logo">Panel Administratora - Sklep z Aromatami</div>
+        <div class="logo">Panel Administratora - Zamówienia Opłacone</div>
         <nav>
             <ul>
                 <li><a href="admin.html">Zamówienia</a></li>
@@ -27,11 +27,11 @@
     </header>
 
     <main>
-        <section id="paid-orders">
-            <h2>Zamówienia Opłacone</h2>
+        <section id="admin-orders">
+            <h2>Opłacone Zamówienia</h2>
             <div id="user-list"></div> <!-- Lista użytkowników -->
             <div id="order-details" style="display: none;">
-                <h3> Szczegóły zamówienia dla użytkownika <span id="customer-name"></span></h3>
+                <h3>Szczegóły zamówienia dla użytkownika <span id="customer-name"></span></h3>
                 <div id="order-list"></div> <!-- Szczegóły zamówienia -->
             </div>
         </section>
@@ -42,77 +42,103 @@
     </footer>
 
     <script>
-        // Odczyt zamówień opłaconych z localStorage
-        const paidOrders = JSON.parse(localStorage.getItem('paidOrders')) || [];
-
-        // Wyświetlanie listy użytkowników
-        const userList = document.getElementById('user-list');
-        const orderDetailsSection = document.getElementById('order-details');
-        const customerNameElement = document.getElementById('customer-name');
-        const orderList = document.getElementById('order-list');
-        let currentlyVisibleOrderIndex = null; // Przechowuje indeks aktualnie widocznego zamówienia
-
-        paidOrders.forEach((order, index) => {
-            const userItem = document.createElement('div');
-            userItem.innerHTML = `<p><a href="#" data-index="${index}" class="order-link">${order.customerName}</a></p>`;
-            userList.appendChild(userItem);
-        });
-
-        // Obsługa kliknięcia na użytkownika, aby wyświetlić lub ukryć szczegóły zamówienia
-        userList.addEventListener('click', function(event) {
-            if (event.target.classList.contains('order-link')) {
-                event.preventDefault();
-                const orderIndex = event.target.getAttribute('data-index');
-
-                if (currentlyVisibleOrderIndex === orderIndex) {
-                    // Jeśli kliknięto ten sam użytkownik, ukryj zamówienie
-                    orderDetailsSection.style.display = 'none';
-                    currentlyVisibleOrderIndex = null; // Reset widocznego zamówienia
-                } else {
-                    // Wyświetlanie nowego zamówienia
-                    const selectedOrder = paidOrders[orderIndex];
-                    customerNameElement.textContent = selectedOrder.customerName;
-                    orderList.innerHTML = '';  // Czyszczenie poprzednich szczegółów zamówienia
-
-                    selectedOrder.items.forEach(item => {
-                        const orderItem = document.createElement('div');
-                        orderItem.innerHTML = `<p>${item.name} - ilość: ${item.quantity}</p>`;
-                        orderList.appendChild(orderItem);
-                    });
-
-                    // Dodajemy przycisk "Usuń zamówienie"
-                    const deleteOrderButton = document.createElement('button');
-                    deleteOrderButton.textContent = 'Usuń zamówienie';
-                    deleteOrderButton.onclick = function() {
-                        deleteOrder(orderIndex); // Funkcja usuwająca zamówienie
-                    };
-                    orderList.appendChild(deleteOrderButton);
-
-                    // Pokazanie sekcji szczegółów zamówienia
-                    orderDetailsSection.style.display = 'block';
-                    currentlyVisibleOrderIndex = orderIndex; // Zapisz aktualnie widoczne zamówienie
+        // Funkcja pobierania opłaconych zamówień z serwera
+        function fetchPaidOrders() {
+            fetch('http://192.168.55.124:3000/paid-orders', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            }
-        });
-
-        // Funkcja usuwająca zamówienie z listy
-        function deleteOrder(orderIndex) {
-            const confirmation = confirm('Czy na pewno chcesz usunąć to zamówienie?');
-            if (confirmation) {
-                // Usuwamy zamówienie z listy opłaconych zamówień
-                paidOrders.splice(orderIndex, 1);
-                localStorage.setItem('paidOrders', JSON.stringify(paidOrders));
-
-                // Aktualizujemy widok
-                alert('Zamówienie zostało usunięte');
-                window.location.reload(); // Odświeżenie strony, aby zaktualizować listę
-            }
+            })
+            .then(response => response.json())
+            .then(orders => {
+                displayPaidOrders(orders);  // Wyświetlanie opłaconych zamówień
+            })
+            .catch(error => {
+                console.error('Błąd:', error);
+            });
         }
 
-        // Funkcja wylogowania
-        document.getElementById('logout-button').addEventListener('click', function() {
-            localStorage.removeItem('username');
-        });
+        // Wyświetlanie listy opłaconych zamówień
+        function displayPaidOrders(paidOrders) {
+            const userList = document.getElementById('user-list');
+            const orderDetailsSection = document.getElementById('order-details');
+            const customerNameElement = document.getElementById('customer-name');
+            const orderList = document.getElementById('order-list');
+            let currentlyVisibleOrderIndex = null; // Przechowuje indeks aktualnie widocznego zamówienia
+
+            userList.innerHTML = '';  // Czyszczenie listy użytkowników
+
+            paidOrders.forEach((order, index) => {
+                const userItem = document.createElement('div');
+                userItem.innerHTML = `<p><a href="#" data-id="${order._id}" data-index="${index}" class="order-link">${order.customerName}</a></p>`;
+                userList.appendChild(userItem);
+
+                // Dodajemy przycisk "Usuń zamówienie"
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Usuń zamówienie';
+                deleteButton.onclick = function() {
+                    deleteOrder(order._id); // Wywołanie funkcji usuwającej zamówienie
+                };
+                userItem.appendChild(deleteButton);
+            });
+
+            // Obsługa kliknięcia na użytkownika, aby wyświetlić szczegóły zamówienia
+            userList.addEventListener('click', function(event) {
+                if (event.target.classList.contains('order-link')) {
+                    event.preventDefault();
+                    const orderIndex = event.target.getAttribute('data-index');
+
+                    if (currentlyVisibleOrderIndex === orderIndex) {
+                        // Jeśli kliknięto ten sam użytkownik, ukryj zamówienie
+                        orderDetailsSection.style.display = 'none';
+                        currentlyVisibleOrderIndex = null; // Reset widocznego zamówienia
+                    } else {
+                        // Wyświetlanie nowego zamówienia
+                        const selectedOrder = paidOrders[orderIndex];
+                        customerNameElement.textContent = selectedOrder.customerName;
+                        orderList.innerHTML = '';  // Czyszczenie poprzednich szczegółów zamówienia
+
+                        selectedOrder.items.forEach(item => {
+                            const orderItem = document.createElement('div');
+                            orderItem.innerHTML = `<p>${item.name} - ilość: ${item.quantity}</p>`;
+                            orderList.appendChild(orderItem);
+                        });
+
+                        // Pokazanie sekcji szczegółów zamówienia
+                        orderDetailsSection.style.display = 'block';
+                        currentlyVisibleOrderIndex = orderIndex; // Zapisz aktualnie widoczne zamówienie
+                    }
+                }
+            });
+        }
+
+        // Funkcja usuwająca zamówienie z paidOrders
+        function deleteOrder(orderId) {
+            fetch(`http://192.168.55.124:3000/paid-orders/${orderId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Błąd podczas usuwania zamówienia');
+                }
+                return response.json();
+            })
+            .then(() => {
+                alert('Zamówienie zostało usunięte.');
+                window.location.reload(); // Odśwież stronę po usunięciu zamówienia
+            })
+            .catch(error => {
+                console.error('Błąd podczas usuwania zamówienia:', error);
+                alert('Wystąpił błąd podczas usuwania zamówienia.');
+            });
+        }
+
+        // Pobierz opłacone zamówienia po załadowaniu strony
+        fetchPaidOrders();
     </script>
 </body>
 </html>
