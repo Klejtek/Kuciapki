@@ -38,6 +38,65 @@
         <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
     </footer>
 
-    <script src="login.js"></script>
+    <!-- Skrypt logowania i inicjalizacji użytkowników -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicjalizacja domyślnych użytkowników w localStorage (jeśli nie istnieją)
+            window.addEventListener('load', function() {
+                let users = JSON.parse(localStorage.getItem('users')) || [];
+
+                const defaultUsers = [
+                    { username: 'MKL', password: '12345' },
+                    { username: 'ASZ', password: 'wPo3lN2m' },
+                    { username: 'DAD', password: 'k8Aq7P4r' }
+                ];
+
+                // Dodaj użytkowników, jeśli nie istnieją w localStorage
+                defaultUsers.forEach(defaultUser => {
+                    if (!users.some(user => user.username === defaultUser.username)) {
+                        users.push(defaultUser);
+                    }
+                });
+
+                // Zapisz zaktualizowaną listę użytkowników do localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+
+                // Logowanie dla debugowania
+                console.log("Zainicjowano użytkowników w localStorage:", users);
+            });
+
+            const loginForm = document.getElementById('login-form');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+
+                    if (username && password) {
+                        // Pobieranie użytkowników z localStorage
+                        let users = JSON.parse(localStorage.getItem('users')) || [];
+                        
+                        // Sprawdzenie, czy istnieje użytkownik o podanym loginie i haśle
+                        const user = users.find(user => user.username === username && user.password === password);
+
+                        if (user) {
+                            localStorage.setItem('username', username); // Zapisanie zalogowanego użytkownika
+                            alert('Zalogowano jako ' + username);
+
+                            // Przekierowanie zależne od roli użytkownika
+                            if (username === 'MKL') {
+                                window.location.href = 'admin.html'; // Panel administratora
+                            } else {
+                                window.location.href = 'index.html'; // Zwykły użytkownik
+                            }
+                        } else {
+                            alert('Nieprawidłowy login lub hasło!');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
