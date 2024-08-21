@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // Wyślij zamówienie do serwera za pomocą fetch
-        fetch('http://192.168.55.124:3000/orders', {
+        fetch('https://kuciapki.onrender.com/orders', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
