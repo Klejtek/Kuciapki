@@ -1,12 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path'); // Import do obsługi statycznych plików
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB_URI || "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+// Obsługa statycznych plików
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Endpoint dla strony głównej (GET /)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); // Zakładając, że masz plik index.html w folderze "public"
+});
 
 // Endpoint: Pobieranie wszystkich zamówień
 app.get('/orders', async (req, res) => {
@@ -198,7 +207,7 @@ app.delete('/paid-orders/:id', async (req, res) => {
     }
 });
 
-// Uruchomienie serwera na porcie 3000
-app.listen(3000, () => {
+// Uruchomienie serwera na porcie 3000 lub innym dostępnym porcie
+app.listen(process.env.PORT || 3000, () => {
     console.log('Serwer działa na porcie 3000');
 });
