@@ -115,7 +115,7 @@
 
         // Funkcja oznaczająca zamówienie jako zrealizowane
         function markOrderAsRealized(orderId) {
-            fetch(`http://192.168.55.124:3000/orders/${orderId}/realize`, {
+            fetch(`https://kuciapki.onrender.com/orders/${orderId}/realize`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

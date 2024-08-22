@@ -115,7 +115,7 @@
 
         // Funkcja usuwająca zamówienie z paidOrders
         function deleteOrder(orderId) {
-            fetch(`http://192.168.55.124:3000/paid-orders/${orderId}`, {
+            fetch(`https://kuciapki.onrender.com/paid-orders/${orderId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'

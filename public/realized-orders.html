@@ -115,7 +115,7 @@
 
         // Funkcja oznaczająca zamówienie jako opłacone
         function markOrderAsPaid(orderId) {
-            fetch(`http://192.168.55.124:3000/orders/${orderId}/pay`, {
+            fetch(`https://kuciapki.onrender.com/orders/${orderId}/pay`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
