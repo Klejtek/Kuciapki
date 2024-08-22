@@ -5,6 +5,9 @@ document.getElementById('login-form').addEventListener('submit', async function(
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
+    // Dodanie logowania danych wejściowych do konsoli
+    console.log('Wysyłanie danych logowania:', { username, password });
+
     if (username && password) {
         try {
             // Wysłanie danych logowania do serwera
@@ -17,6 +20,9 @@ document.getElementById('login-form').addEventListener('submit', async function(
             });
 
             const result = await response.json();
+
+            // Dodanie logowania odpowiedzi serwera do konsoli
+            console.log('Otrzymana odpowiedź z serwera:', result);
 
             if (response.ok) {
                 // Pomyślne logowanie
