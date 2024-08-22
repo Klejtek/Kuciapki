@@ -81,6 +81,13 @@ app.post('/add-user', async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        // Logowanie danych przychodzących
+        console.log("Dodawanie użytkownika:", req.body);
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Wymagane jest podanie nazwy użytkownika i hasła.' });
+        }
+
         await client.connect();
         const database = client.db('sklep');
         const collection = database.collection('users');
@@ -108,6 +115,13 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        // Logowanie danych przychodzących
+        console.log("Logowanie:", req.body);
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Wymagane jest podanie nazwy użytkownika i hasła.' });
+        }
+
         await client.connect();
         const database = client.db('sklep');
         const collection = database.collection('users');
