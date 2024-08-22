@@ -151,6 +151,7 @@ app.post('/login', async (req, res) => {
 });
 
 
+
 // Endpoint: Pobieranie wszystkich użytkowników
 app.get('/users', async (req, res) => {
     const client = new MongoClient(uri);
