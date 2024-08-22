@@ -114,10 +114,13 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        // Logowanie danych przychodzących
         console.log("Logowanie:", req.body);
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Wymagane jest podanie nazwy użytkownika i hasła.' });
+        // Sprawdzanie, czy dane są obecne i mają poprawny format
+        if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
+            console.log("Nieprawidłowe dane JSON:", req.body);
+            return res.status(400).json({ error: 'Wymagane jest podanie poprawnych danych JSON.' });
         }
 
         await client.connect();
@@ -146,6 +149,7 @@ app.post('/login', async (req, res) => {
         await client.close();
     }
 });
+
 
 // Endpoint: Pobieranie wszystkich użytkowników
 app.get('/users', async (req, res) => {
