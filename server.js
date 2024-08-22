@@ -46,7 +46,6 @@ app.post('/orders', async (req, res) => {
 
         const { customerName, items } = req.body;
 
-        // Sprawdź, czy istnieje już zamówienie dla tego użytkownika
         const existingOrder = await collection.findOne({ customerName });
 
         if (existingOrder) {
@@ -59,7 +58,6 @@ app.post('/orders', async (req, res) => {
                 }
             });
 
-            // Zaktualizuj zamówienie w bazie danych
             await collection.updateOne(
                 { _id: existingOrder._id },
                 { $set: { items: existingOrder.items } }
