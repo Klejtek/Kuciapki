@@ -5,72 +5,46 @@ document.addEventListener('DOMContentLoaded', function() {
     window.updateCartCount = updateCartCount;
     window.clearCart = clearCart;
 
-    function getCartKey() {
-        const username = localStorage.getItem('username');
-        return `cart_${username}`;
-    }
-
-    function displayUserGreeting() {
-        const username = localStorage.getItem('username');
-        if (username) {
-            const userGreetingElement = document.getElementById('user-greeting');
-            if (userGreetingElement) {
-                userGreetingElement.textContent = `Zalogowany jako: ${username}`;
+    async function getSessionUsername() {
+        try {
+            const response = await fetch('https://twoj-serwer.onrender.com/session-username');  // Zamień na właściwy URL twojego API na Renderze
+            if (response.ok) {
+                const { username } = await response.json();
+                return username;
+            } else {
+                return null;
             }
+        } catch (error) {
+            console.error('Błąd podczas pobierania nazwy użytkownika:', error);
+            return null;
         }
     }
 
-    function logout() {
-        localStorage.removeItem('username');
-        window.location.href = 'login.html';
+    async function displayUserGreeting() {
+        const username = await getSessionUsername();
+        const userGreetingElement = document.getElementById('user-greeting');
+        if (username && userGreetingElement) {
+            userGreetingElement.textContent = `Zalogowany jako: ${username}`;
+        }
     }
 
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (username && password) {
-                let users = JSON.parse(localStorage.getItem('users')) || [];
-                const user = users.find(user => user.username === username && user.password === password);
-
-                if (user) {
-                    localStorage.setItem('username', username);
-                    alert('Zalogowano jako ' + username);
-
-                    if (username === 'MKL') {
-                        window.location.href = 'admin.html';
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                } else {
-                    alert('Nieprawidłowy login lub hasło!');
-                }
-            }
-        });
+    async function logout() {
+        try {
+            await fetch('https://twoj-serwer.onrender.com/logout', { method: 'POST' });
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Błąd podczas wylogowywania:', error);
+        }
     }
 
-    window.addEventListener('load', function() {
-        let users = JSON.parse(localStorage.getItem('users')) || [];
-        const defaultUsers = [
-            { username: 'ASZ', password: 'wPo3lN2m' },
-            { username: 'DAD', password: 'k8Aq7P4r' },
-            { username: 'MKL', password: '12345' }
-        ];
+    async function addToCart(productName) {
+        const username = await getSessionUsername();
+        if (!username) {
+            alert('Zaloguj się przed dodaniem do koszyka!');
+            return;
+        }
 
-        defaultUsers.forEach(defaultUser => {
-            if (!users.some(user => user.username === defaultUser.username)) {
-                users.push(defaultUser);
-            }
-        });
-
-        localStorage.setItem('users', JSON.stringify(users));
-    });
-
-    function addToCart(productName) {
-        const cartKey = getCartKey();
+        const cartKey = `cart_${username}`;
         let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
         let product = cart.find(item => item.name === productName);
@@ -85,8 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
         showNotification('Dodano do koszyka');
     }
 
-    function updateCartCount() {
-        const cartKey = getCartKey();
+    async function updateCartCount() {
+        const username = await getSessionUsername();
+        const cartKey = `cart_${username}`;
         const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
         const count = cart.reduce((sum, item) => sum + item.quantity, 0);
         const cartCountElement = document.getElementById('cart-count');
@@ -102,8 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
         checkCartVisibility();
     }
 
-    function displayCart() {
-        const cartKey = getCartKey();
+    async function displayCart() {
+        const username = await getSessionUsername();
+        const cartKey = `cart_${username}`;
         const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
         const cartItemsContainer = document.getElementById('cart-items');
@@ -146,8 +122,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function removeFromCart(index) {
-        const cartKey = getCartKey();
+    async function removeFromCart(index) {
+        const username = await getSessionUsername();
+        const cartKey = `cart_${username}`;
         let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
         cart.splice(index, 1);
@@ -157,19 +134,23 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCartCount();
     }
 
-    function clearCart() {
-        const cartKey = getCartKey();
+    async function clearCart() {
+        const username = await getSessionUsername();
+        const cartKey = `cart_${username}`;
         localStorage.removeItem(cartKey);
         displayCart();
         updateCartCount();
     }
 
-    // Zaktualizowana funkcja submitOrder do wysyłania zamówień na serwer
-    function submitOrder() {
-        const cartKey = getCartKey();
-        const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+    async function submitOrder() {
+        const username = await getSessionUsername();
+        if (!username) {
+            alert('Zaloguj się przed złożeniem zamówienia!');
+            return;
+        }
 
-        const username = localStorage.getItem('username') || 'Anonimowy użytkownik';
+        const cartKey = `cart_${username}`;
+        const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
         const orderData = {
             customerName: username,
             items: cart.map(item => ({
@@ -178,24 +159,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }))
         };
 
-        // Wyślij zamówienie do serwera za pomocą fetch
-      fetch('https://kuciapki.onrender.com/orders', {  // Zamień na właściwy URL twojego API na Renderze
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(orderData)
-})
-
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Błąd sieci');
-            }
-            return response.json();
+        fetch('https://twoj-serwer.onrender.com/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
         })
+        .then(response => response.json())
         .then(data => {
-            console.log('Zamówienie zostało złożone!', data);
-            clearCart(); // Opróżnij koszyk po złożeniu zamówienia
+            clearCart();
             alert('Zamówienie zostało złożone!');
         })
         .catch(error => {
@@ -207,8 +180,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderForm = document.getElementById('order-form');
     if (orderForm) {
         orderForm.addEventListener('submit', function(event) {
-            event.preventDefault(); // Zablokowanie domyślnego zachowania formularza
-            submitOrder(); // Wysłanie zamówienia do serwera
+            event.preventDefault();
+            submitOrder();
         });
     }
 
@@ -223,8 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function logoutUser() {
         alert('Twoja sesja wygasła. Zostaniesz teraz wylogowany.');
-        localStorage.removeItem('username');
-        window.location.href = 'login.html';
+        logout();
     }
 
     let logoutTimer;
