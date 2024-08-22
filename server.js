@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');  // Dodano JWT
 const path = require('path');
 const app = express();
 
@@ -9,17 +10,32 @@ app.use(cors());
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI || "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const secret = 'your_jwt_secret';  // Ustaw sekretny klucz dla JWT
 
 // Obsługa statycznych plików
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware do weryfikacji tokena JWT
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) return res.status(401).json({ message: 'Brak tokena, autoryzacja nieudana' });
+
+    jwt.verify(token, secret, (err, user) => {
+        if (err) return res.status(403).json({ message: 'Token nieprawidłowy' });
+        req.user = user;  // Ustawiamy użytkownika w req
+        next();
+    });
+}
 
 // Endpoint dla strony głównej (GET /)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint: Pobieranie wszystkich zamówień
-app.get('/orders', async (req, res) => {
+// Endpoint: Pobieranie wszystkich zamówień (chroniony przez JWT)
+app.get('/orders', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     try {
         await client.connect();
@@ -35,8 +51,8 @@ app.get('/orders', async (req, res) => {
     }
 });
 
-// Endpoint: Dodawanie nowego zamówienia (z sumowaniem)
-app.post('/orders', async (req, res) => {
+// Endpoint: Dodawanie nowego zamówienia (chroniony przez JWT)
+app.post('/orders', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
 
     try {
@@ -104,7 +120,7 @@ app.post('/add-user', async (req, res) => {
     }
 });
 
-// Endpoint do logowania użytkownika z weryfikacją hasła
+// Endpoint do logowania użytkownika z generowaniem tokena JWT
 app.post('/login', async (req, res) => {
     const client = new MongoClient(uri);
     const { username, password } = req.body;
@@ -124,7 +140,10 @@ app.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
         }
 
-        res.status(200).json({ message: 'Zalogowano pomyślnie' });
+        // Generowanie tokena JWT po pomyślnym zalogowaniu
+        const token = jwt.sign({ username: user.username }, secret, { expiresIn: '1h' });
+
+        res.status(200).json({ message: 'Zalogowano pomyślnie', token });
     } catch (error) {
         console.error('Błąd podczas logowania:', error);
         res.status(500).json({ error: 'Wystąpił błąd podczas logowania' });
@@ -133,8 +152,8 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Endpoint: Pobieranie wszystkich użytkowników
-app.get('/users', async (req, res) => {
+// Endpoint: Pobieranie wszystkich użytkowników (chroniony przez JWT)
+app.get('/users', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     try {
         await client.connect();
@@ -150,8 +169,8 @@ app.get('/users', async (req, res) => {
     }
 });
 
-// Endpoint: Oznaczanie zamówienia jako zrealizowane i przenoszenie do realizedOrders (z sumowaniem)
-app.post('/orders/:id/realize', async (req, res) => {
+// Endpoint: Oznaczanie zamówienia jako zrealizowane i przenoszenie do realizedOrders (z sumowaniem) (chroniony przez JWT)
+app.post('/orders/:id/realize', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     const orderId = req.params.id;
 
@@ -198,8 +217,8 @@ app.post('/orders/:id/realize', async (req, res) => {
     }
 });
 
-// Endpoint: Pobieranie zrealizowanych zamówień
-app.get('/realized-orders', async (req, res) => {
+// Endpoint: Pobieranie zrealizowanych zamówień (chroniony przez JWT)
+app.get('/realized-orders', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     try {
         await client.connect();
@@ -215,8 +234,8 @@ app.get('/realized-orders', async (req, res) => {
     }
 });
 
-// Endpoint: Oznaczanie zamówienia jako opłacone i przenoszenie do paidOrders (z sumowaniem)
-app.post('/orders/:id/pay', async (req, res) => {
+// Endpoint: Oznaczanie zamówienia jako opłacone i przenoszenie do paidOrders (z sumowaniem) (chroniony przez JWT)
+app.post('/orders/:id/pay', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     const orderId = req.params.id;
 
@@ -263,8 +282,8 @@ app.post('/orders/:id/pay', async (req, res) => {
     }
 });
 
-// Endpoint: Pobieranie opłaconych zamówień
-app.get('/paid-orders', async (req, res) => {
+// Endpoint: Pobieranie opłaconych zamówień (chroniony przez JWT)
+app.get('/paid-orders', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     try {
         await client.connect();
@@ -280,8 +299,8 @@ app.get('/paid-orders', async (req, res) => {
     }
 });
 
-// Endpoint: Usuwanie zamówienia z paidOrders po ID
-app.delete('/paid-orders/:id', async (req, res) => {
+// Endpoint: Usuwanie zamówienia z paidOrders po ID (chroniony przez JWT)
+app.delete('/paid-orders/:id', authenticateToken, async (req, res) => {
     const client = new MongoClient(uri);
     const orderId = req.params.id;
 
