@@ -1,4 +1,4 @@
-// Funkcja do logowania użytkownika z serwera (MongoDB)
+// Funkcja do logowania użytkownika
 document.getElementById('login-form').addEventListener('submit', async function(event) {
     event.preventDefault();
 
@@ -8,7 +8,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
     if (username && password) {
         try {
             // Wysłanie danych logowania do serwera
-            const response = await fetch('https://kuciapki.onrender.com/login', { // Zmodyfikuj URL na Twój aktualny
+            const response = await fetch('https://kuciapki.onrender.com/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -19,19 +19,19 @@ document.getElementById('login-form').addEventListener('submit', async function(
             const result = await response.json();
 
             if (response.ok) {
-                // Zalogowano pomyślnie
+                // Pomyślne logowanie
                 alert('Zalogowano jako ' + username);
                 localStorage.setItem('username', username);
 
                 // Sprawdzenie, czy użytkownik to MKL
                 if (username === 'MKL') {
-                    window.location.href = 'admin.html';  // Przekierowanie do widoku administratora
+                    window.location.href = 'admin.html';  // Przekierowanie do panelu administratora
                 } else {
                     window.location.href = 'index.html';  // Przekierowanie do strony głównej
                 }
             } else {
-                // W przypadku błędu logowania
-                alert(result.message || 'Nieprawidłowy login lub hasło!');
+                // Obsługa błędu logowania
+                alert(result.error || 'Nieprawidłowy login lub hasło!');
             }
         } catch (error) {
             console.error('Błąd podczas logowania:', error);
