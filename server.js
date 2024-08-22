@@ -78,7 +78,7 @@ app.post('/orders', async (req, res) => {
     }
 });
 
-// Endpoint: Oznaczanie zamówienia jako zrealizowane i przenoszenie do realizedOrders
+// Endpoint: Oznaczanie zamówienia jako zrealizowane i przenoszenie do realizedOrders (z sumowaniem)
 app.post('/orders/:id/realize', async (req, res) => {
     const client = new MongoClient(uri);
     const orderId = req.params.id;
@@ -93,8 +93,29 @@ app.post('/orders/:id/realize', async (req, res) => {
         const order = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
 
         if (order) {
-            // Skopiuj zamówienie do kolekcji realizedOrders
-            await realizedOrdersCollection.insertOne(order);
+            // Sprawdź, czy użytkownik ma już zamówienie w realizedOrders
+            const existingOrder = await realizedOrdersCollection.findOne({ customerName: order.customerName });
+
+            if (existingOrder) {
+                // Sumuj ilości produktów
+                order.items.forEach(newItem => {
+                    const existingItem = existingOrder.items.find(item => item.name === newItem.name);
+                    if (existingItem) {
+                        existingItem.quantity += newItem.quantity;
+                    } else {
+                        existingOrder.items.push(newItem);
+                    }
+                });
+
+                // Zaktualizuj zamówienie w realizedOrders
+                await realizedOrdersCollection.updateOne(
+                    { _id: existingOrder._id },
+                    { $set: { items: existingOrder.items } }
+                );
+            } else {
+                // Jeśli nie ma wcześniejszego zamówienia, dodaj nowe
+                await realizedOrdersCollection.insertOne(order);
+            }
 
             // Usuń zamówienie z bieżącej kolekcji orders
             await ordersCollection.deleteOne({ _id: new ObjectId(orderId) });
@@ -129,7 +150,7 @@ app.get('/realized-orders', async (req, res) => {
     }
 });
 
-// Endpoint: Oznaczanie zamówienia jako opłacone i przenoszenie do paidOrders
+// Endpoint: Oznaczanie zamówienia jako opłacone i przenoszenie do paidOrders (z sumowaniem)
 app.post('/orders/:id/pay', async (req, res) => {
     const client = new MongoClient(uri);
     const orderId = req.params.id;
@@ -144,8 +165,29 @@ app.post('/orders/:id/pay', async (req, res) => {
         const order = await realizedOrdersCollection.findOne({ _id: new ObjectId(orderId) });
 
         if (order) {
-            // Skopiuj zamówienie do kolekcji paidOrders
-            await paidOrdersCollection.insertOne(order);
+            // Sprawdź, czy użytkownik ma już zamówienie w paidOrders
+            const existingOrder = await paidOrdersCollection.findOne({ customerName: order.customerName });
+
+            if (existingOrder) {
+                // Sumuj ilości produktów
+                order.items.forEach(newItem => {
+                    const existingItem = existingOrder.items.find(item => item.name === newItem.name);
+                    if (existingItem) {
+                        existingItem.quantity += newItem.quantity;
+                    } else {
+                        existingOrder.items.push(newItem);
+                    }
+                });
+
+                // Zaktualizuj zamówienie w paidOrders
+                await paidOrdersCollection.updateOne(
+                    { _id: existingOrder._id },
+                    { $set: { items: existingOrder.items } }
+                );
+            } else {
+                // Jeśli nie ma wcześniejszego zamówienia, dodaj nowe
+                await paidOrdersCollection.insertOne(order);
+            }
 
             // Usuń zamówienie z realizedOrders
             await realizedOrdersCollection.deleteOne({ _id: new ObjectId(orderId) });
