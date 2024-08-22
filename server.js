@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path'); // Import do obsługi statycznych plików
+const bcrypt = require('bcrypt');
+const path = require('path');
 const app = express();
 
 app.use(cors());
@@ -14,7 +15,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint dla strony głównej (GET /)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html')); // Zakładając, że masz plik index.html w folderze "public"
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Endpoint: Pobieranie wszystkich zamówień
@@ -49,7 +50,6 @@ app.post('/orders', async (req, res) => {
         const existingOrder = await collection.findOne({ customerName });
 
         if (existingOrder) {
-            // Zsumuj produkty z nowego zamówienia z istniejącym zamówieniem
             items.forEach(newItem => {
                 const existingItem = existingOrder.items.find(item => item.name === newItem.name);
                 if (existingItem) {
@@ -66,13 +66,85 @@ app.post('/orders', async (req, res) => {
             );
             res.status(200).json({ message: 'Zamówienie zostało zaktualizowane' });
         } else {
-            // Jeśli nie ma wcześniejszego zamówienia, dodaj nowe
             const result = await collection.insertOne(req.body);
             res.status(201).json({ insertedId: result.insertedId });
         }
     } catch (error) {
         console.error('Błąd podczas dodawania zamówienia:', error);
         res.status(500).json({ error: 'Wystąpił błąd podczas dodawania zamówienia' });
+    } finally {
+        await client.close();
+    }
+});
+
+// Endpoint do dodawania użytkownika z hashowaniem hasła
+app.post('/add-user', async (req, res) => {
+    const client = new MongoClient(uri);
+    const { username, password } = req.body;
+
+    try {
+        await client.connect();
+        const database = client.db('sklep');
+        const collection = database.collection('users');
+
+        const existingUser = await collection.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Użytkownik już istnieje.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await collection.insertOne({ username, password: hashedPassword });
+
+        res.status(201).json({ message: 'Użytkownik został dodany.' });
+    } catch (error) {
+        console.error('Błąd podczas dodawania użytkownika:', error);
+        res.status(500).json({ error: 'Wystąpił błąd podczas dodawania użytkownika' });
+    } finally {
+        await client.close();
+    }
+});
+
+// Endpoint do logowania użytkownika z weryfikacją hasła
+app.post('/login', async (req, res) => {
+    const client = new MongoClient(uri);
+    const { username, password } = req.body;
+
+    try {
+        await client.connect();
+        const database = client.db('sklep');
+        const collection = database.collection('users');
+
+        const user = await collection.findOne({ username });
+        if (!user) {
+            return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
+        }
+
+        res.status(200).json({ message: 'Zalogowano pomyślnie' });
+    } catch (error) {
+        console.error('Błąd podczas logowania:', error);
+        res.status(500).json({ error: 'Wystąpił błąd podczas logowania' });
+    } finally {
+        await client.close();
+    }
+});
+
+// Endpoint: Pobieranie wszystkich użytkowników
+app.get('/users', async (req, res) => {
+    const client = new MongoClient(uri);
+    try {
+        await client.connect();
+        const database = client.db('sklep');
+        const collection = database.collection('users');
+        const users = await collection.find({}).toArray();
+        res.status(200).json(users);
+    } catch (error) {
+        console.error('Błąd podczas pobierania użytkowników:', error);
+        res.status(500).json({ error: 'Błąd podczas pobierania użytkowników' });
     } finally {
         await client.close();
     }
@@ -89,15 +161,12 @@ app.post('/orders/:id/realize', async (req, res) => {
         const ordersCollection = database.collection('zamowienia');
         const realizedOrdersCollection = database.collection('realizedOrders');
 
-        // Znajdź zamówienie po ID
         const order = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
 
         if (order) {
-            // Sprawdź, czy użytkownik ma już zamówienie w realizedOrders
             const existingOrder = await realizedOrdersCollection.findOne({ customerName: order.customerName });
 
             if (existingOrder) {
-                // Sumuj ilości produktów
                 order.items.forEach(newItem => {
                     const existingItem = existingOrder.items.find(item => item.name === newItem.name);
                     if (existingItem) {
@@ -107,24 +176,20 @@ app.post('/orders/:id/realize', async (req, res) => {
                     }
                 });
 
-                // Zaktualizuj zamówienie w realizedOrders
                 await realizedOrdersCollection.updateOne(
                     { _id: existingOrder._id },
                     { $set: { items: existingOrder.items } }
                 );
             } else {
-                // Jeśli nie ma wcześniejszego zamówienia, dodaj nowe
                 await realizedOrdersCollection.insertOne(order);
             }
 
-            // Usuń zamówienie z bieżącej kolekcji orders
             await ordersCollection.deleteOne({ _id: new ObjectId(orderId) });
 
             res.status(200).json({ message: 'Zamówienie zostało zrealizowane i przeniesione do zamówień zrealizowanych.' });
         } else {
             res.status(404).json({ error: 'Zamówienie nie zostało znalezione.' });
         }
-
     } catch (error) {
         console.error('Błąd podczas realizacji zamówienia:', error);
         res.status(500).json({ error: 'Błąd podczas realizacji zamówienia.' });
@@ -161,15 +226,12 @@ app.post('/orders/:id/pay', async (req, res) => {
         const realizedOrdersCollection = database.collection('realizedOrders');
         const paidOrdersCollection = database.collection('paidOrders');
 
-        // Znajdź zamówienie po ID
         const order = await realizedOrdersCollection.findOne({ _id: new ObjectId(orderId) });
 
         if (order) {
-            // Sprawdź, czy użytkownik ma już zamówienie w paidOrders
             const existingOrder = await paidOrdersCollection.findOne({ customerName: order.customerName });
 
             if (existingOrder) {
-                // Sumuj ilości produktów
                 order.items.forEach(newItem => {
                     const existingItem = existingOrder.items.find(item => item.name === newItem.name);
                     if (existingItem) {
@@ -179,24 +241,20 @@ app.post('/orders/:id/pay', async (req, res) => {
                     }
                 });
 
-                // Zaktualizuj zamówienie w paidOrders
                 await paidOrdersCollection.updateOne(
                     { _id: existingOrder._id },
                     { $set: { items: existingOrder.items } }
                 );
             } else {
-                // Jeśli nie ma wcześniejszego zamówienia, dodaj nowe
                 await paidOrdersCollection.insertOne(order);
             }
 
-            // Usuń zamówienie z realizedOrders
             await realizedOrdersCollection.deleteOne({ _id: new ObjectId(orderId) });
 
             res.status(200).json({ message: 'Zamówienie zostało oznaczone jako opłacone.' });
         } else {
             res.status(404).json({ error: 'Zamówienie nie zostało znalezione.' });
         }
-
     } catch (error) {
         console.error('Błąd podczas oznaczania zamówienia jako opłacone:', error);
         res.status(500).json({ error: 'Błąd podczas oznaczania zamówienia jako opłacone.' });
@@ -232,7 +290,6 @@ app.delete('/paid-orders/:id', async (req, res) => {
         const database = client.db('sklep');
         const paidOrdersCollection = database.collection('paidOrders');
 
-        // Usuń zamówienie z paidOrders
         const result = await paidOrdersCollection.deleteOne({ _id: new ObjectId(orderId) });
 
         if (result.deletedCount === 1) {
@@ -240,7 +297,6 @@ app.delete('/paid-orders/:id', async (req, res) => {
         } else {
             res.status(404).json({ error: 'Zamówienie nie zostało znalezione.' });
         }
-
     } catch (error) {
         console.error('Błąd podczas usuwania zamówienia:', error);
         res.status(500).json({ error: 'Błąd podczas usuwania zamówienia.' });
