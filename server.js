@@ -81,7 +81,6 @@ app.post('/add-user', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Logowanie danych przychodzących
         console.log("Dodawanie użytkownika:", req.body);
 
         if (!username || !password) {
@@ -115,7 +114,6 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Logowanie danych przychodzących
         console.log("Logowanie:", req.body);
 
         if (!username || !password) {
@@ -127,15 +125,19 @@ app.post('/login', async (req, res) => {
         const collection = database.collection('users');
 
         const user = await collection.findOne({ username });
+        
         if (!user) {
+            console.log("Użytkownik nie znaleziony:", username);
             return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            console.log("Nieprawidłowe hasło dla użytkownika:", username);
             return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
         }
 
+        console.log("Logowanie pomyślne:", username);
         res.status(200).json({ message: 'Zalogowano pomyślnie' });
     } catch (error) {
         console.error('Błąd podczas logowania:', error);
