@@ -46,6 +46,7 @@ app.post('/orders', async (req, res) => {
 
         const { customerName, items } = req.body;
 
+        // Sprawdź, czy istnieje już zamówienie dla tego użytkownika
         const existingOrder = await collection.findOne({ customerName });
 
         if (existingOrder) {
@@ -58,6 +59,7 @@ app.post('/orders', async (req, res) => {
                 }
             });
 
+            // Zaktualizuj zamówienie w bazie danych
             await collection.updateOne(
                 { _id: existingOrder._id },
                 { $set: { items: existingOrder.items } }
@@ -81,12 +83,6 @@ app.post('/add-user', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        console.log("Dodawanie użytkownika:", req.body);
-
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Wymagane jest podanie nazwy użytkownika i hasła.' });
-        }
-
         await client.connect();
         const database = client.db('sklep');
         const collection = database.collection('users');
@@ -114,39 +110,20 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Logowanie danych przychodzących
-        console.log("Logowanie:", req.body);
-
-        // Sprawdzanie, czy dane są obecne i mają poprawny format
-        if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
-            console.log("Nieprawidłowe dane JSON:", req.body);
-            return res.status(400).json({ error: 'Wymagane jest podanie poprawnych danych JSON.' });
-        }
-
         await client.connect();
         const database = client.db('sklep');
         const collection = database.collection('users');
 
         const user = await collection.findOne({ username });
-        
         if (!user) {
-            console.log("Użytkownik nie znaleziony:", username);
             return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
         }
-
-        // Dodanie logów dla porównania haseł
-        console.log("Wprowadzone hasło:", password);
-        console.log("Hash w bazie danych:", user.password);
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        console.log("Czy hasło jest poprawne:", isPasswordValid);
-
         if (!isPasswordValid) {
-            console.log("Nieprawidłowe hasło dla użytkownika:", username);
             return res.status(400).json({ error: 'Nieprawidłowy login lub hasło' });
         }
 
-        console.log("Logowanie pomyślne:", username);
         res.status(200).json({ message: 'Zalogowano pomyślnie' });
     } catch (error) {
         console.error('Błąd podczas logowania:', error);
