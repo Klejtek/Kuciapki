@@ -21,7 +21,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
             if (response.ok) {
                 // Pomyślne logowanie
                 alert('Zalogowano jako ' + username);
-                localStorage.setItem('username', username);
+                localStorage.setItem('username', username);  // Przechowywanie zalogowanego użytkownika
 
                 // Sprawdzenie, czy użytkownik to MKL
                 if (username === 'MKL') {
