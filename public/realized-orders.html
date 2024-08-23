@@ -6,9 +6,50 @@
     <title>Zamówienia Zrealizowane - Sklep z Aromatami</title>
     <link rel="stylesheet" href="style.css">
     <script>
-        const username = localStorage.getItem('username');
-        if (username !== 'MKL') {
-            window.location.href = 'login.html';
+        document.addEventListener('DOMContentLoaded', async function() {
+            const token = localStorage.getItem('token');
+            const response = await fetch('https://kuciapki.onrender.com/api/realized-orders', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const orders = await response.json();
+            if (response.ok) {
+                displayOrders(orders);
+            } else {
+                alert('Wystąpił problem z pobieraniem zamówień.');
+            }
+        });
+
+        function displayOrders(orders) {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+            orders.forEach(order => {
+                const userItem = document.createElement('div');
+                userItem.innerHTML = `<p><a href="#" class="order-link">${order.customerName} - ${order.items.length} produktów</a></p>`;
+                userList.appendChild(userItem);
+
+                userItem.querySelector('.order-link').addEventListener('click', () => displayOrderDetails(order));
+            });
+        }
+
+        function displayOrderDetails(order) {
+            const orderDetailsSection = document.getElementById('order-details');
+            const customerNameElement = document.getElementById('customer-name');
+            const orderList = document.getElementById('order-list');
+
+            customerNameElement.textContent = order.customerName;
+            orderList.innerHTML = '';
+
+            order.items.forEach(item => {
+                const orderItem = document.createElement('div');
+                orderItem.textContent = `${item.productName} - ilość: ${item.quantity}`;
+                orderList.appendChild(orderItem);
+            });
+
+            orderDetailsSection.style.display = 'block';
         }
     </script>
 </head>
@@ -28,10 +69,10 @@
     <main>
         <section id="realized-orders">
             <h2>Zamówienia Zrealizowane</h2>
-            <div id="user-list"></div> <!-- Lista użytkowników -->
+            <div id="user-list"></div>
             <div id="order-details" style="display: none;">
-                <h3> Szczegóły zamówienia dla użytkownika <span id="customer-name"></span></h3>
-                <div id="order-list"></div> <!-- Szczegóły zamówienia -->
+                <h3>Szczegóły zamówienia dla użytkownika <span id="customer-name"></span></h3>
+                <div id="order-list"></div>
             </div>
         </section>
     </main>
@@ -39,100 +80,5 @@
     <footer>
         <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
     </footer>
-
-    <script>
-        // Funkcja pobierająca zamówienia zrealizowane z bazy danych
-        function fetchRealizedOrders() {
-            fetch('https://kuciapki.onrender.com/realized-orders', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Błąd podczas pobierania zamówień zrealizowanych');
-                }
-                return response.json();
-            })
-            .then(realizedOrders => {
-                console.log('Zrealizowane zamówienia:', realizedOrders); // Logowanie danych
-                displayRealizedOrders(realizedOrders);
-            })
-            .catch(error => {
-                console.error('Błąd podczas pobierania zamówień zrealizowanych:', error);
-            });
-        }
-
-        // Wyświetlanie listy użytkowników z zamówieniami
-        function displayRealizedOrders(realizedOrders) {
-            const userList = document.getElementById('user-list');
-            const orderDetailsSection = document.getElementById('order-details');
-            const customerNameElement = document.getElementById('customer-name');
-            const orderList = document.getElementById('order-list');
-            let currentlyVisibleOrderIndex = null;
-
-            userList.innerHTML = '';
-
-            realizedOrders.forEach((order, index) => {
-                const userItem = document.createElement('div');
-                userItem.innerHTML = `<p><a href="#" data-id="${order._id}" data-index="${index}" class="order-link">${order.customerName}</a></p>`;
-                userList.appendChild(userItem);
-            });
-
-            userList.addEventListener('click', function(event) {
-                if (event.target.classList.contains('order-link')) {
-                    event.preventDefault();
-                    const orderIndex = event.target.getAttribute('data-index');
-
-                    if (currentlyVisibleOrderIndex === orderIndex) {
-                        orderDetailsSection.style.display = 'none';
-                        currentlyVisibleOrderIndex = null;
-                    } else {
-                        const selectedOrder = realizedOrders[orderIndex];
-                        customerNameElement.textContent = selectedOrder.customerName;
-                        orderList.innerHTML = '';
-
-                        selectedOrder.items.forEach(item => {
-                            const orderItem = document.createElement('div');
-                            orderItem.innerHTML = `<p>${item.name} - ilość: ${item.quantity}</p>`;
-                            orderList.appendChild(orderItem);
-                        });
-
-                        const markAsPaidButton = document.createElement('button');
-                        markAsPaidButton.textContent = 'Oznacz jako opłacone';
-                        markAsPaidButton.onclick = function() {
-                            markOrderAsPaid(selectedOrder._id);
-                        };
-                        orderList.appendChild(markAsPaidButton);
-
-                        orderDetailsSection.style.display = 'block';
-                        currentlyVisibleOrderIndex = orderIndex;
-                    }
-                }
-            });
-        }
-
-        // Funkcja oznaczająca zamówienie jako opłacone
-        function markOrderAsPaid(orderId) {
-            fetch(`https://kuciapki.onrender.com/orders/${orderId}/pay`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(() => {
-                alert('Zamówienie zostało oznaczone jako opłacone');
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Błąd podczas oznaczania zamówienia jako opłacone:', error);
-            });
-        }
-
-        // Pobieranie zamówień po załadowaniu strony
-        fetchRealizedOrders();
-    </script>
 </body>
 </html>
