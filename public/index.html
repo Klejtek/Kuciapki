@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sklep Internetowy - Smaki</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        .cart-button {
+            display: block;
+            width: 150px;
+            margin: 0 auto 40px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        .cart-button:hover {
+            background-color: #0056b3;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .product {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .product img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .product h3 {
+            color: #333;
+            font-size: 20px;
+            margin: 15px 0;
+        }
+
+        .product p {
+            color: #555;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .product button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .product button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smaki w Naszym Sklepie</h1>
+        
+        <!-- Przycisk przekierowujący do strony koszyka -->
+        <a href="cart.html" class="cart-button">Koszyk</a>
+        
+        <div class="product-grid" id="product-grid">
+            <!-- Produkty będą tutaj dynamicznie generowane -->
+        </div>
+    </div>
+
+    <script>
+        // Ustaw userId jako stałą (można zamienić na dynamiczne logowanie)
+        const userId = 'user123';  // To identyfikator użytkownika, możesz go zmieniać według potrzeb
+
+        // Funkcja dodająca produkt do koszyka
+        async function addToCart(productId) {
+            try {
+                const response = await fetch('http://localhost:5000/cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, productId })
+                });
+                const data = await response.json();
+                console.log('Produkt dodany do koszyka:', data);
+            } catch (error) {
+                console.error('Błąd podczas dodawania produktu do koszyka:', error);
+            }
+        }
+
+        // Funkcja pobierająca produkty z backendu
+        async function fetchProducts() {
+            try {
+                const response = await fetch('http://localhost:5000/products');
+                const products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                console.error('Błąd podczas pobierania produktów:', error);
+            }
+        }
+
+        // Funkcja wyświetlająca produkty
+        function displayProducts(products) {
+            const productGrid = document.getElementById('product-grid');
+            productGrid.innerHTML = ''; // Wyczyść poprzednie produkty
+
+            products.forEach(product => {
+                const productElement = `
+                    <div class="product">
+                        <img src="${product.imageUrl}" alt="${product.name}">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <button onclick="addToCart('${product._id}')">Dodaj do koszyka</button>
+                    </div>
+                `;
+                productGrid.innerHTML += productElement;
+            });
+        }
+
+        // Inicjalizacja - pobranie produktów po załadowaniu strony
+        fetchProducts();
+    </script>
+</body>
+</html>
