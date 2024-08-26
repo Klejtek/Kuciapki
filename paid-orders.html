@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administratora - Zamówienia Opłacone</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Sprawdzenie, czy użytkownik to MKL
+        const username = localStorage.getItem('username');
+        if (username !== 'MKL') {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <div class="logo">Panel Administratora - Zamówienia Opłacone</div>
+        <nav>
+            <ul>
+                <li><a href="admin.html">Zamówienia</a></li>
+                <li><a href="realized-orders.html">Zamówienia Zrealizowane</a></li>
+                <li><a href="paid-orders.html">Zamówienia Opłacone</a></li>
+                <li><a href="login.html" id="logout-button">Wyloguj</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="admin-orders">
+            <h2>Opłacone Zamówienia</h2>
+            <div id="user-list"></div> <!-- Lista użytkowników -->
+            <div id="order-details" style="display: none;">
+                <h3>Szczegóły zamówienia dla użytkownika <span id="customer-name"></span></h3>
+                <div id="order-list"></div> <!-- Szczegóły zamówienia -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script>
+        // Funkcja pobierania opłaconych zamówień z serwera
+        function fetchPaidOrders() {
+            fetch('https://kuciapki.onrender.com/paid-orders', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(orders => {
+                displayPaidOrders(orders);  // Wyświetlanie opłaconych zamówień
+            })
+            .catch(error => {
+                console.error('Błąd:', error);
+            });
+        }
+
+        // Wyświetlanie listy opłaconych zamówień
+        function displayPaidOrders(paidOrders) {
+            const userList = document.getElementById('user-list');
+            const orderDetailsSection = document.getElementById('order-details');
+            const customerNameElement = document.getElementById('customer-name');
+            const orderList = document.getElementById('order-list');
+            let currentlyVisibleOrderIndex = null; // Przechowuje indeks aktualnie widocznego zamówienia
+
+            userList.innerHTML = '';  // Czyszczenie listy użytkowników
+
+            paidOrders.forEach((order, index) => {
+                const userItem = document.createElement('div');
+                userItem.innerHTML = `<p><a href="#" data-id="${order._id}" data-index="${index}" class="order-link">${order.customerName}</a></p>`;
+                userList.appendChild(userItem);
+
+                // Dodajemy przycisk "Usuń zamówienie"
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Usuń zamówienie';
+                deleteButton.onclick = function() {
+                    deleteOrder(order._id); // Wywołanie funkcji usuwającej zamówienie
+                };
+                userItem.appendChild(deleteButton);
+            });
+
+            // Obsługa kliknięcia na użytkownika, aby wyświetlić szczegóły zamówienia
+            userList.addEventListener('click', function(event) {
+                if (event.target.classList.contains('order-link')) {
+                    event.preventDefault();
+                    const orderIndex = event.target.getAttribute('data-index');
+
+                    if (currentlyVisibleOrderIndex === orderIndex) {
+                        // Jeśli kliknięto ten sam użytkownik, ukryj zamówienie
+                        orderDetailsSection.style.display = 'none';
+                        currentlyVisibleOrderIndex = null; // Reset widocznego zamówienia
+                    } else {
+                        // Wyświetlanie nowego zamówienia
+                        const selectedOrder = paidOrders[orderIndex];
+                        customerNameElement.textContent = selectedOrder.customerName;
+                        orderList.innerHTML = '';  // Czyszczenie poprzednich szczegółów zamówienia
+
+                        selectedOrder.items.forEach(item => {
+                            const orderItem = document.createElement('div');
+                            orderItem.innerHTML = `<p>${item.name} - ilość: ${item.quantity}</p>`;
+                            orderList.appendChild(orderItem);
+                        });
+
+                        // Pokazanie sekcji szczegółów zamówienia
+                        orderDetailsSection.style.display = 'block';
+                        currentlyVisibleOrderIndex = orderIndex; // Zapisz aktualnie widoczne zamówienie
+                    }
+                }
+            });
+        }
+
+        // Funkcja usuwająca zamówienie z paidOrders
+        function deleteOrder(orderId) {
+            fetch(`https://kuciapki.onrender.com/paid-orders/${orderId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Błąd podczas usuwania zamówienia');
+                }
+                return response.json();
+            })
+            .then(() => {
+                alert('Zamówienie zostało usunięte.');
+                window.location.reload(); // Odśwież stronę po usunięciu zamówienia
+            })
+            .catch(error => {
+                console.error('Błąd podczas usuwania zamówienia:', error);
+                alert('Wystąpił błąd podczas usuwania zamówienia.');
+            });
+        }
+
+        // Pobierz opłacone zamówienia po załadowaniu strony
+        fetchPaidOrders();
+    </script>
+</body>
+</html>
