@@ -15,6 +15,17 @@ mongoose.connect(MONGO_URI).then(() => console.log('Connected to MongoDB Atlas')
 app.use(cors());
 app.use(express.json());
 
+// Middleware do przekierowania niezalogowanych użytkowników
+app.use((req, res, next) => {
+    if (!req.url.includes('/login.html') && !req.url.includes('/api') && !req.url.includes('/css') && !req.url.includes('/images') && !req.url.includes('/js')) {
+        const loggedInUser = req.headers['loggedinuser'];
+        if (!loggedInUser) {
+            return res.redirect('/login.html');
+        }
+    }
+    next();
+});
+
 // Ustawienie katalogu na pliki statyczne (CSS, JS, images)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
