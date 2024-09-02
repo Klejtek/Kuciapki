@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koszyk</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Sklep z Aromatami</div>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Strona Główna</a></li>
+                <li><a href="index.html#shop">Sklep</a></li>
+                <li><a href="index.html#about">O Nas</a></li>
+                <li><a href="index.html#contact">Kontakt</a></li>
+                <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="cart">
+            <h2>Twój Koszyk</h2>
+            <ul id="cart-items"></ul>
+            <button id="send-order" onclick="sendOrder()">Wyślij zamówienie</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const cartList = document.getElementById('cart-items');
+            const userId = localStorage.getItem('userId');
+
+            if (!userId) {
+                console.error('Brak userId w localStorage');
+                cartList.innerHTML = '<p>Wystąpił problem: brak ID użytkownika.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const cartItems = await response.json();
+
+                if (cartItems.length === 0) {
+                    cartList.innerHTML = '<p>Koszyk jest pusty</p>';
+                } else {
+                    cartItems.forEach(item => {
+                        const productItem = document.createElement('li');
+                        productItem.className = 'cart-item';
+                        productItem.innerHTML = `
+                            <p>Produkt: ${item.productId.name}</p>
+                            <p>Ilość: ${item.quantity}</p>
+                        `;
+                        cartList.appendChild(productItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+                cartList.innerHTML = '<p>Wystąpił problem z ładowaniem koszyka</p>';
+            }
+        });
+
+        async function sendOrder() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Brak ID użytkownika. Zaloguj się ponownie.');
+                return;
+            }
+
+            try {
+                // Wysłanie zamówienia na serwer
+                const response = await fetch(`https://kuciapki.onrender.com/api/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                // Usunięcie koszyka z bazy danych
+                const deleteResponse = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!deleteResponse.ok) {
+                    throw new Error(`HTTP error! Status: ${deleteResponse.status}`);
+                }
+
+                // Wyczyszczenie koszyka w interfejsie użytkownika
+                localStorage.removeItem('cart');
+                document.getElementById('cart-items').innerHTML = '';
+                document.getElementById('cart-count').textContent = '0';
+
+                alert('Zamówienie zostało wysłane!');
+                // Pozostajemy na stronie koszyka
+
+            } catch (error) {
+                console.error('Error sending order:', error);
+                alert('Wystąpił problem przy wysyłaniu zamówienia.');
+            }
+        }
+    </script>
+</body>
+</html>

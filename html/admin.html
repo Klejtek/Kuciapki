@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administracyjny</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Panel Administracyjny</div>
+        <nav>
+            <ul>
+                <li><a href="orders.html">Zamówienia</a></li>
+                <li><a href="completed-orders.html">Zamówienia Zrealizowane</a></li>
+                <li><a href="paid-orders.html">Zamówienia Opłacone</a></li>
+                <li><a href="admin-products.html">Zarządzanie Produktami</a></li> <!-- Dodany link do zarządzania produktami -->
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="orders">
+            <h2>Lista Zamówień</h2>
+            <ul id="orders-list">
+                <!-- Zamówienia będą tutaj ładowane dynamicznie -->
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const orders = JSON.parse(localStorage.getItem('orders')) || [];
+            const completedOrders = JSON.parse(localStorage.getItem('completedOrders')) || [];
+            const ordersList = document.getElementById('orders-list');
+
+            if (orders.length === 0) {
+                ordersList.innerHTML = '<li>Brak zamówień.</li>';
+            } else {
+                orders.forEach((order, index) => {
+                    const li = document.createElement('li');
+                    let orderDetails = `Zamówienie od ${order.user}: `;
+                    orderDetails += order.items.map(item => `${item.name} x ${item.quantity}`).join(', ');
+
+                    li.textContent = orderDetails;
+
+                    // Dodanie przycisku "Przenieś do zrealizowanych"
+                    const button = document.createElement('button');
+                    button.textContent = 'Przenieś do zrealizowanych';
+                    button.onclick = () => {
+                        // Przenieś zamówienie do zrealizowanych
+                        completedOrders.push(order);
+                        orders.splice(index, 1);
+
+                        localStorage.setItem('orders', JSON.stringify(orders));
+                        localStorage.setItem('completedOrders', JSON.stringify(completedOrders));
+
+                        // Odświeżenie listy zamówień
+                        location.reload();
+                    };
+
+                    li.appendChild(button);
+                    ordersList.appendChild(li);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
