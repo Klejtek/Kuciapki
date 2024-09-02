@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logowanie</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
@@ -51,6 +51,7 @@
 
             if (response.ok) {
                 localStorage.setItem('userId', result.userId); // Zapisujemy userId do localStorage
+                localStorage.setItem('loggedInUser', result.username); // Zapisujemy loggedInUser do localStorage
 
                 if (result.role === 'admin') {
                     window.location.href = 'admin.html';
