@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zrealizowane Zamówienia</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
@@ -36,7 +36,7 @@
             const completedOrdersList = document.getElementById('completed-orders-list');
 
             try {
-                const response = await fetch(https://kuciapki.onrender.com/api/orders/completed');
+                const response = await fetch(`https://kuciapki.onrender.com/api/orders/completed`);
                 const orders = await response.json();
 
                 if (orders.length === 0) {
@@ -91,7 +91,7 @@
                     button.onclick = async () => {
                         try {
                             const promises = groupedOrders[user].orderIds.map(orderId =>
-                                fetch(https://kuciapki.onrender.com/api/orders/${orderId}/pay`, {
+                                fetch(`https://kuciapki.onrender.com/api/orders/${orderId}/pay`, {
                                     method: 'POST'
                                 })
                             );

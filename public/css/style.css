@@ -38,7 +38,6 @@ nav ul li a {
 main {
     padding: 2rem;
     padding-top: 100px; /* Dodatkowa przestrzeń dla stałego nagłówka */
-    padding-bottom: 120px; /* Dodatkowy margines na dole strony */
 }
 
 .product-grid {
@@ -117,9 +116,8 @@ footer {
     position: fixed;
     top: 10px;
     left: 10px;
-    background-color: #333; /* Ustawiono tło w ciemnym kolorze */
-    color: #fff; /* Biały kolor tekstu */
-    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 5px 10px;
     border-radius: 5px;
     font-weight: bold;
     z-index: 1001;

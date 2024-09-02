@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Koszyk</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
@@ -44,7 +44,7 @@
             }
 
             try {
-                const response = await fetch(https://kuciapki.onrender.com/api/cart/${userId}`);
+                const response = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
@@ -78,7 +78,7 @@
 
             try {
                 // Wysłanie zamówienia na serwer
-                const response = await fetch(https://kuciapki.onrender.com/api/orders`, {
+                const response = await fetch(`https://kuciapki.onrender.com/api/orders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
@@ -89,7 +89,7 @@
                 }
 
                 // Usunięcie koszyka z bazy danych
-                const deleteResponse = await fetch(https://kuciapki.onrender.com/api/cart/${userId}`, {
+                const deleteResponse = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`, {
                     method: 'DELETE'
                 });
 
