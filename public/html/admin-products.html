@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zarządzanie Produktami</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Dodajemy styl dla sekcji produktów, aby miała odpowiednią wysokość i przewijała się, jeśli jest za długa */
+        #product-management {
+            max-height: calc(100vh - 160px); /* Odejmujemy miejsce na nagłówek i stopkę */
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        /* Upewniamy się, że stopka nie zasłania treści */
+        footer {
+            position: relative;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Panel Administracyjny - Zarządzanie Produktami</div>
+        <nav>
+            <ul>
+                <li><a href="admin.html">Panel Główny</a></li>
+                <li><a href="admin-products.html">Zarządzanie Produktami</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="product-management">
+            <h2>Zarządzanie Dostępnością Produktów</h2>
+            <ul id="product-list">
+                <!-- Produkty będą ładowane dynamicznie -->
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const productList = document.getElementById('product-list');
+
+            try {
+                const response = await fetch('https://kuciapki.onrender.com/api/products');
+                const products = await response.json();
+
+                products.forEach(product => {
+                    const li = document.createElement('li');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `product_${product._id}`;
+                    checkbox.checked = product.available;
+
+                    checkbox.addEventListener('change', async () => {
+                        await fetch(`https://kuciapki.onrender.com/api/products/${product._id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ available: checkbox.checked })
+                        });
+                    });
+
+                    const label = document.createElement('label');
+                    label.setAttribute('for', `product_${product._id}`);
+                    label.textContent = product.name;
+
+                    li.appendChild(checkbox);
+                    li.appendChild(label);
+                    productList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            }
+        });
+    </script>
+</body>
+</html>
