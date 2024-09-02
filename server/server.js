@@ -4,15 +4,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-const MONGO_URI = "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Połączenie z MongoDB Atlas
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('Connected to MongoDB Atlas'))
+mongoose.connect(MONGO_URI).then(() => console.log('Connected to MongoDB Atlas'))
   .catch(err => console.log('Error connecting to MongoDB:', err));
 
 app.use(cors());
@@ -369,6 +366,6 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
 });
 
-app.listen(port, () => {
-    console.log(`Serwer działa na http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Serwer działa na http://localhost:${PORT}`);
 });
