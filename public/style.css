@@ -44,7 +44,7 @@ main {
 .product-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr); /* 5 kolumn */
-    gap: 1rem; /* odstęp między produktami */
+    gap: 1rem; /* Odstęp między produktami */
 }
 
 .product {
@@ -54,8 +54,9 @@ main {
 }
 
 .product img {
-    max-width: 150px; /* Zmniejszenie maksymalnej szerokości obrazków */
-    height: auto;
+    max-width: 100px; /* Zmniejszenie maksymalnej szerokości obrazków */
+    height: 150px; /* Ustawienie maksymalnej wysokości */
+    object-fit: cover; /* Zapewnienie, że obrazek wypełni nadany rozmiar */
     display: block;
     margin: 0 auto 10px; /* Centrowanie obrazka i odstęp poniżej */
 }
@@ -158,18 +159,4 @@ footer {
     font-weight: bold;
     cursor: pointer;
     z-index: 1001;
-}
-
-/* Układ pięciu produktów w jednym rzędzie */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 kolumn */
-    gap: 1rem; /* odstęp między produktami */
-}
-
-.product img {
-    max-width: 150px; /* Zmniejszenie szerokości obrazków */
-    height: auto;
-    display: block;
-    margin: 0 auto 10px; /* Centrowanie obrazka i odstęp poniżej */
 }
