@@ -38,6 +38,7 @@ nav ul li a {
 main {
     padding: 2rem;
     padding-top: 100px; /* Dodatkowa przestrzeń dla stałego nagłówka */
+    padding-bottom: 120px; /* Dodatkowa przestrzeń dla widgetu koszyka */
 }
 
 .product-grid {
