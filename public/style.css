@@ -157,3 +157,15 @@ footer {
     cursor: pointer;
     z-index: 1001;
 }
+
+/* Układ pięciu produktów w jednym rzędzie */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 kolumn */
+    gap: 1rem; /* odstęp między produktami */
+}
+
+.product img {
+    max-width: 150px; /* Zmniejszenie szerokości obrazków */
+    height: auto;
+}
