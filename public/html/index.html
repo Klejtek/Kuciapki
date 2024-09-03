@@ -38,6 +38,11 @@
             const loggedInUser = localStorage.getItem('loggedInUser');
             const logoutButton = document.getElementById('logout-button');
 
+            if (!loggedInUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             if (loggedInUser) {
                 userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
             }
@@ -117,7 +122,7 @@
             const userId = localStorage.getItem('userId');
             if (!userId) return;
 
-            fetch(`/api/cart/${userId}`)
+            fetch(`https://kuciapki.onrender.com/api/cart/${userId}`)
                 .then(response => response.json())
                 .then(cartItems => {
                     const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
