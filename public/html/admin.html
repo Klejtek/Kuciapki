@@ -41,12 +41,13 @@
             const ordersList = document.getElementById('orders-list');
             const userOrderCountElement = document.getElementById('user-order-count');
 
-            // Zbiór do przechowywania unikalnych użytkowników
-            const uniqueUsers = new Set();
-
+            // Sprawdzamy, czy są zamówienia
             if (orders.length === 0) {
                 ordersList.innerHTML = '<li>Brak zamówień.</li>';
             } else {
+                // Zbiór do przechowywania unikalnych użytkowników
+                const uniqueUsers = new Set();
+
                 orders.forEach((order, index) => {
                     const li = document.createElement('li');
                     let orderDetails = `Zamówienie od ${order.user}: `;
