@@ -54,15 +54,16 @@ main {
 }
 
 .product img {
-    max-width: 100px; /* Zmniejszenie maksymalnej szerokości obrazków */
-    height: 150px; /* Ustawienie maksymalnej wysokości */
+    max-width: 100%;
+    width: 100px; /* Mniejsza szerokość obrazków */
+    height: 120px; /* Mniejsza wysokość obrazków */
     object-fit: cover; /* Zapewnienie, że obrazek wypełni nadany rozmiar */
     display: block;
     margin: 0 auto 10px; /* Centrowanie obrazka i odstęp poniżej */
 }
 
 .product h3 {
-    font-size: 1.2rem;
+    font-size: 1rem; /* Mniejsza czcionka dla tytułu produktu */
     margin: 0.5rem 0;
 }
 
