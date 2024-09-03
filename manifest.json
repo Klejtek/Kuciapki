@@ -11,5 +11,13 @@
   "description": "Petki",
   "categories": [
     "shopping"
+  ],
+"icons": [
+    {
+      "src": "/icons/icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpg",
+      "purpose": "any"
+    }
   ]
 }
