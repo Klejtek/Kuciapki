@@ -18,6 +18,11 @@ app.use(express.json());
 // Ustawienie katalogu na pliki statyczne (CSS, JS, images)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Przekierowanie na login.html
+app.get('/', (req, res) => {
+    res.redirect('/login.html');
+});
+
 // Middleware do ustawienia Content-Type dla plików CSS
 app.get('*.css', (req, res, next) => {
     res.set('Content-Type', 'text/css');
