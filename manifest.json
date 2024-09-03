@@ -1,0 +1,15 @@
+{
+  "background_color": "#57e813",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Kuciapki",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Kuciapki",
+  "start_url": "/login.html",
+  "theme_color": "#f37751",
+  "description": "Petki",
+  "categories": [
+    "shopping"
+  ]
+}
