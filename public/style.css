@@ -55,8 +55,8 @@ main {
 
 .product img {
     max-width: 100%;
-    width: 100px; /* Mniejsza szerokość obrazków */
-    height: 120px; /* Mniejsza wysokość obrazków */
+    width: 30px; /* Mniejsza szerokość obrazków */
+    height: 45px; /* Mniejsza wysokość obrazków */
     object-fit: cover; /* Zapewnienie, że obrazek wypełni nadany rozmiar */
     display: block;
     margin: 0 auto 10px; /* Centrowanie obrazka i odstęp poniżej */
