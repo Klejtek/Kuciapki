@@ -32,6 +32,7 @@
         <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
     </footer>
 
+    <!-- Skrypt logowania użytkownika -->
     <script>
         document.getElementById('login-form').addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -63,6 +64,17 @@
                 errorMessage.textContent = result.message;
             }
         });
+
+        // Rejestracja Service Workera
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/pwabuilder-sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
     </script>
 </body>
 </html>
