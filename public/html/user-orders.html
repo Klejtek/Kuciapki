@@ -36,10 +36,11 @@
                     ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
                     Object.keys(groupedOrders).forEach((date, index) => {
+                        // Poprawienie formatowania daty
                         const formattedDate = new Date(date).toISOString().split('T')[0]; // Formatowanie na YYYY-MM-DD
-                        
+
                         const li = document.createElement('li');
-                        
+
                         // Tworzenie linku do daty
                         const dateLink = document.createElement('a');
                         dateLink.href = '#';
@@ -68,6 +69,7 @@
                             try {
                                 console.log("Sending DELETE request for date: ", formattedDate);  // Logowanie daty przed wysłaniem
 
+                                // Wysyłanie zapytania DELETE z odpowiednią datą
                                 const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
                                     method: 'DELETE'
                                 });
