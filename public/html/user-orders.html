@@ -26,7 +26,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const userId = "ID_ZALOGOWANEGO_UŻYTKOWNIKA"; // Musisz tu dynamicznie wprowadzić ID użytkownika
+            const userId = "ID_ZALOGOWANEGO_UŻYTKOWNIKA"; // Wprowadź dynamiczne ID zalogowanego użytkownika
             const ordersDateList = document.getElementById('orders-date-list');
 
             async function fetchOrders() {
@@ -34,10 +34,15 @@
                     const response = await fetch(`/api/client-orders/${userId}`);
                     const userOrders = await response.json();
 
+                    console.log("Odpowiedź serwera: ", userOrders);  // Logowanie odpowiedzi serwera
+
+                    if (!Array.isArray(userOrders)) {
+                        throw new Error("Oczekiwano tablicy zamówień, ale otrzymano coś innego");
+                    }
+
                     ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
                     userOrders.forEach((order, index) => {
-                        // Poprawienie formatowania daty w lokalnej strefie czasowej
                         const formattedDate = new Date(order.date).toLocaleDateString('pl-PL', {
                             year: 'numeric',
                             month: '2-digit',
@@ -45,8 +50,6 @@
                         });
 
                         const li = document.createElement('li');
-
-                        // Tworzenie linku do daty
                         const dateLink = document.createElement('a');
                         dateLink.href = '#';
                         dateLink.textContent = formattedDate;
@@ -59,7 +62,6 @@
                         };
                         li.appendChild(dateLink);
 
-                        // Szczegóły zamówienia
                         const details = document.createElement('div');
                         details.id = `details-${index}`;
                         details.style.display = 'none';
@@ -67,29 +69,26 @@
                             return `<div>${product.productId.name} x ${product.quantity}</div>`;
                         }).join('');
 
-                        // Dodanie przycisku "Usuń zamówienia z tego dnia"
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'Usuń zamówienie';
                         deleteButton.onclick = async () => {
                             try {
                                 const deleteFormattedDate = new Date(order.date).toISOString().split('T')[0];
-                                console.log("Sending DELETE request for date: ", deleteFormattedDate);  // Logowanie daty przed wysłaniem
+                                console.log("Sending DELETE request for date: ", deleteFormattedDate);
 
-                                // Wysyłanie zapytania DELETE
                                 const deleteResponse = await fetch(`/api/client-orders/${userId}/by-date/${deleteFormattedDate}`, {
                                     method: 'DELETE'
                                 });
 
                                 if (deleteResponse.ok) {
                                     alert(`Zamówienia z dnia ${formattedDate} zostały usunięte`);
-                                    // Odśwież listę zamówień po usunięciu
                                     fetchOrders();
                                 } else {
-                                    alert('Wystąpił problem przy usuwaniu zamówień.');
-                                    console.log("Błąd przy usuwaniu zamówień: ", await deleteResponse.text());
+                                    console.error('Błąd przy usuwaniu zamówienia:', await deleteResponse.text());
+                                    alert('Wystąpił problem przy usuwaniu zamówienia.');
                                 }
                             } catch (error) {
-                                console.error('Błąd przy usuwaniu zamówień:', error);
+                                console.error('Błąd przy usuwaniu zamówienia:', error);
                             }
                         };
 
