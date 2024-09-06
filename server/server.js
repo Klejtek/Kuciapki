@@ -65,7 +65,8 @@ const orderSchema = new mongoose.Schema({
         }
     ],
     status: { type: String, default: 'pending' },
-    date: { type: Date, default: Date.now }
+    // Zmieniamy zapis daty na lokalny czas
+    date: { type: Date, default: () => new Date() }
 });
 
 const Order = mongoose.model('Order', orderSchema);
@@ -284,14 +285,14 @@ app.get('/api/orders/grouped', async (req, res) => {
     }
 });
 
-// Zaktualizowany endpoint do usuwania zamówień z danego dnia z prawidłowym parsowaniem daty
+// Zaktualizowany endpoint do usuwania zamówień z danego dnia bez manipulacji UTC
 app.delete('/api/orders/by-date/:date', async (req, res) => {
     const { date } = req.params;
 
     try {
-        // Parsowanie daty na format ISO (rozpoczynanie od początku dnia do końca dnia)
-        const startOfDay = new Date(`${date}T00:00:00.000Z`);
-        const endOfDay = new Date(`${date}T23:59:59.999Z`);
+        // Zakres od początku do końca danego dnia w lokalnym czasie
+        const startOfDay = new Date(`${date}T00:00:00`);
+        const endOfDay = new Date(`${date}T23:59:59`);
 
         // Znajdowanie zamówień z danego dnia
         const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
