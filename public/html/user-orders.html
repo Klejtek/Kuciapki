@@ -28,64 +28,72 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const ordersDateList = document.getElementById('orders-date-list');
 
-            try {
-                const response = await fetch('/api/orders/grouped');
-                const groupedOrders = await response.json();
+            async function fetchOrders() {
+                try {
+                    const response = await fetch('/api/orders/grouped');
+                    const groupedOrders = await response.json();
 
-                Object.keys(groupedOrders).forEach((date, index) => {
-                    const li = document.createElement('li');
-                    
-                    // Wyświetlanie oryginalnej daty
-                    const dateLink = document.createElement('a');
-                    dateLink.href = '#';
-                    dateLink.textContent = date;
-                    dateLink.onclick = (e) => {
-                        e.preventDefault();
-                        const details = document.getElementById(`details-${index}`);
-                        if (details) {
-                            details.style.display = details.style.display === 'none' ? 'block' : 'none';
-                        }
-                    };
-                    li.appendChild(dateLink);
+                    ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
-                    // Szczegóły zamówienia
-                    const details = document.createElement('div');
-                    details.id = `details-${index}`;
-                    details.style.display = 'none';
-                    details.innerHTML = Object.keys(groupedOrders[date].totalProducts).map(productName => {
-                        return `<div>${productName} x ${groupedOrders[date].totalProducts[productName]}</div>`;
-                    }).join('');
-
-                    // Poprawne formatowanie daty na ISO do zapytania DELETE
-                    const formattedDate = new Date(date).toISOString().split('T')[0];
-
-                    // Dodanie przycisku "Usuń zamówienia z tego dnia"
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Usuń zamówienia z tego dnia';
-                    deleteButton.onclick = async () => {
-                        try {
-                            const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
-                                method: 'DELETE'
-                            });
-
-                            if (deleteResponse.ok) {
-                                alert(`Zamówienia z dnia ${formattedDate} zostały usunięte`);
-                                location.reload();
-                            } else {
-                                alert('Wystąpił problem przy usuwaniu zamówień.');
+                    Object.keys(groupedOrders).forEach((date, index) => {
+                        const li = document.createElement('li');
+                        
+                        // Wyświetlanie oryginalnej daty
+                        const dateLink = document.createElement('a');
+                        dateLink.href = '#';
+                        dateLink.textContent = date;
+                        dateLink.onclick = (e) => {
+                            e.preventDefault();
+                            const details = document.getElementById(`details-${index}`);
+                            if (details) {
+                                details.style.display = details.style.display === 'none' ? 'block' : 'none';
                             }
-                        } catch (error) {
-                            console.error('Błąd przy usuwaniu zamówień:', error);
-                        }
-                    };
+                        };
+                        li.appendChild(dateLink);
 
-                    details.appendChild(deleteButton);
-                    li.appendChild(details);
-                    ordersDateList.appendChild(li);
-                });
-            } catch (error) {
-                console.error('Błąd przy pobieraniu zamówień:', error);
+                        // Szczegóły zamówienia
+                        const details = document.createElement('div');
+                        details.id = `details-${index}`;
+                        details.style.display = 'none';
+                        details.innerHTML = Object.keys(groupedOrders[date].totalProducts).map(productName => {
+                            return `<div>${productName} x ${groupedOrders[date].totalProducts[productName]}</div>`;
+                        }).join('');
+
+                        // Poprawne formatowanie daty na ISO do zapytania DELETE
+                        const formattedDate = new Date(date).toISOString().split('T')[0];
+
+                        // Dodanie przycisku "Usuń zamówienia z tego dnia"
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Usuń zamówienia z tego dnia';
+                        deleteButton.onclick = async () => {
+                            try {
+                                const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
+                                    method: 'DELETE'
+                                });
+
+                                if (deleteResponse.ok) {
+                                    alert(`Zamówienia z dnia ${formattedDate} zostały usunięte`);
+                                    // Odśwież listę zamówień po usunięciu
+                                    fetchOrders();
+                                } else {
+                                    alert('Wystąpił problem przy usuwaniu zamówień.');
+                                }
+                            } catch (error) {
+                                console.error('Błąd przy usuwaniu zamówień:', error);
+                            }
+                        };
+
+                        details.appendChild(deleteButton);
+                        li.appendChild(details);
+                        ordersDateList.appendChild(li);
+                    });
+                } catch (error) {
+                    console.error('Błąd przy pobieraniu zamówień:', error);
+                }
             }
+
+            // Pobierz zamówienia na początku
+            fetchOrders();
         });
     </script>
 </body>
