@@ -61,12 +61,16 @@
 
                         // Poprawne formatowanie daty na ISO do zapytania DELETE
                         const formattedDate = new Date(date).toISOString().split('T')[0];
+                        
+                        console.log("Formatted Date: ", formattedDate);  // Logowanie daty dla sprawdzenia
 
                         // Dodanie przycisku "Usuń zamówienia z tego dnia"
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'Usuń zamówienia z tego dnia';
                         deleteButton.onclick = async () => {
                             try {
+                                console.log("Sending DELETE request for date: ", formattedDate);  // Logowanie daty przed wysłaniem
+
                                 const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
                                     method: 'DELETE'
                                 });
@@ -77,6 +81,7 @@
                                     fetchOrders();
                                 } else {
                                     alert('Wystąpił problem przy usuwaniu zamówień.');
+                                    console.log("Błąd przy usuwaniu zamówień: ", await deleteResponse.text());
                                 }
                             } catch (error) {
                                 console.error('Błąd przy usuwaniu zamówień:', error);
