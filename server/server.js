@@ -372,6 +372,11 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
 });
 
+// Dodany endpoint do user-orders.html
+app.get('/user-orders.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'html', 'user-orders.html'));
+});
+
 app.listen(PORT, () => {
     console.log(`Serwer działa na http://localhost:${PORT}`);
 });
