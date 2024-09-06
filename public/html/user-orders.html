@@ -26,7 +26,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // Pobranie userId z localStorage po zalogowaniu
             const userId = localStorage.getItem('userId');
 
             if (!userId) {
@@ -41,13 +40,13 @@
                     const response = await fetch(`/api/client-orders/${userId}`);
                     const userOrders = await response.json();
 
-                    console.log("Odpowiedź serwera: ", userOrders);  // Logowanie odpowiedzi serwera
+                    console.log("Odpowiedź serwera: ", userOrders);
 
                     if (!Array.isArray(userOrders)) {
                         throw new Error("Oczekiwano tablicy zamówień, ale otrzymano coś innego");
                     }
 
-                    ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
+                    ordersDateList.innerHTML = '';
 
                     userOrders.forEach((order, index) => {
                         const formattedDate = new Date(order.date).toLocaleDateString('pl-PL', {
@@ -89,7 +88,8 @@
 
                                 if (deleteResponse.ok) {
                                     alert(`Zamówienia z dnia ${formattedDate} zostały usunięte`);
-                                    fetchOrders();
+                                    // Usunięcie elementu z listy zamówień bez odświeżania strony
+                                    li.remove();
                                 } else {
                                     console.error('Błąd przy usuwaniu zamówienia:', await deleteResponse.text());
                                     alert('Wystąpił problem przy usuwaniu zamówienia.');
@@ -108,7 +108,6 @@
                 }
             }
 
-            // Pobierz zamówienia na początku
             fetchOrders();
         });
     </script>
