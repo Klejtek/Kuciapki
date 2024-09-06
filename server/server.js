@@ -284,14 +284,16 @@ app.get('/api/orders/grouped', async (req, res) => {
     }
 });
 
-// Endpoint do usuwania zamówień z danego dnia z dodatkowymi logami
+// Zaktualizowany endpoint do usuwania zamówień z danego dnia z prawidłowym parsowaniem daty
 app.delete('/api/orders/by-date/:date', async (req, res) => {
     const { date } = req.params;
 
     try {
-        const startOfDay = new Date(date).setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date).setHours(23, 59, 59, 999);
+        // Parsowanie daty na format ISO (rozpoczynanie od początku dnia do końca dnia)
+        const startOfDay = new Date(`${date}T00:00:00.000Z`);
+        const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
+        // Znajdowanie zamówień z danego dnia
         const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
 
         if (ordersToDelete.length === 0) {
@@ -301,6 +303,7 @@ app.delete('/api/orders/by-date/:date', async (req, res) => {
 
         console.log(`Znaleziono ${ordersToDelete.length} zamówień do usunięcia na dzień ${date}`);
 
+        // Usuwanie wszystkich zamówień z danego dnia
         await Order.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
 
         console.log(`Usunięto ${ordersToDelete.length} zamówień z dnia ${date}`);
