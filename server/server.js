@@ -41,7 +41,7 @@ const Product = mongoose.model('Product', productSchema);
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: 'user' } // Domyślna rola to 'user'
+    role: { type: String, default: 'user' }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -64,7 +64,7 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true }
         }
     ],
-    status: { type: String, default: 'pending' }, // Nowe pole statusu zamówienia
+    status: { type: String, default: 'pending' },
     date: { type: Date, default: Date.now }
 });
 
@@ -205,7 +205,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
         }
 
-        res.status(200).json({ userId: user._id, role: user.role }); // Zwracamy userId i role
+        res.status(200).json({ userId: user._id, role: user.role });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
     }
@@ -232,7 +232,6 @@ app.post('/api/orders', async (req, res) => {
 
         await order.save();
 
-        // Usunięcie koszyka po złożeniu zamówienia
         await Cart.deleteMany({ userId });
 
         res.status(200).json({ message: 'Zamówienie zostało złożone', order });
@@ -246,7 +245,6 @@ app.get('/api/orders', async (req, res) => {
     const { userId } = req.query;
 
     try {
-        // Filtracja po użytkowniku, jeśli userId jest podane
         const filter = userId ? { userId } : {};
         const orders = await Order.find(filter).populate('products.productId').populate('userId');
         res.status(200).json(orders);
@@ -261,13 +259,12 @@ app.get('/api/orders/grouped', async (req, res) => {
         const orders = await Order.find().populate('products.productId');
 
         const groupedOrders = orders.reduce((acc, order) => {
-            const orderDate = new Date(order.date).toLocaleDateString(); // Grupowanie po dacie
+            const orderDate = new Date(order.date).toLocaleDateString();
 
             if (!acc[orderDate]) {
                 acc[orderDate] = { totalProducts: {}, orderIds: [] };
             }
 
-            // Sumowanie ilości produktów
             order.products.forEach(product => {
                 const productName = product.productId.name;
                 if (!acc[orderDate].totalProducts[productName]) {
@@ -276,7 +273,6 @@ app.get('/api/orders/grouped', async (req, res) => {
                 acc[orderDate].totalProducts[productName] += product.quantity;
             });
 
-            // Przechowywanie ID zamówienia do późniejszego usuwania
             acc[orderDate].orderIds.push(order._id);
             return acc;
         }, {});
@@ -288,7 +284,7 @@ app.get('/api/orders/grouped', async (req, res) => {
     }
 });
 
-// Endpoint do usuwania zamówień z danego dnia
+// Endpoint do usuwania zamówień z danego dnia z dodatkowymi logami
 app.delete('/api/orders/by-date/:date', async (req, res) => {
     const { date } = req.params;
 
@@ -296,12 +292,18 @@ app.delete('/api/orders/by-date/:date', async (req, res) => {
         const startOfDay = new Date(date).setHours(0, 0, 0, 0);
         const endOfDay = new Date(date).setHours(23, 59, 59, 999);
 
-        // Znajdowanie zamówień z danego dnia
         const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
 
-        // Usuwanie wszystkich zamówień z danego dnia
+        if (ordersToDelete.length === 0) {
+            console.log(`Brak zamówień do usunięcia na dzień ${date}`);
+            return res.status(404).json({ message: `Brak zamówień do usunięcia na dzień ${date}` });
+        }
+
+        console.log(`Znaleziono ${ordersToDelete.length} zamówień do usunięcia na dzień ${date}`);
+
         await Order.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
 
+        console.log(`Usunięto ${ordersToDelete.length} zamówień z dnia ${date}`);
         res.status(200).json({ message: `Zamówienia z dnia ${date} zostały usunięte` });
     } catch (error) {
         console.error('Błąd przy usuwaniu zamówień z danego dnia:', error);
