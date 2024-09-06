@@ -26,18 +26,19 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            const userId = "ID_ZALOGOWANEGO_UŻYTKOWNIKA"; // Musisz tu dynamicznie wprowadzić ID użytkownika
             const ordersDateList = document.getElementById('orders-date-list');
 
             async function fetchOrders() {
                 try {
-                    const response = await fetch('/api/orders/grouped');
-                    const groupedOrders = await response.json();
+                    const response = await fetch(`/api/client-orders/${userId}`);
+                    const userOrders = await response.json();
 
                     ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
-                    Object.keys(groupedOrders).forEach((date, index) => {
+                    userOrders.forEach((order, index) => {
                         // Poprawienie formatowania daty w lokalnej strefie czasowej
-                        const formattedDate = new Date(date).toLocaleDateString('pl-PL', {
+                        const formattedDate = new Date(order.date).toLocaleDateString('pl-PL', {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit'
@@ -62,21 +63,20 @@
                         const details = document.createElement('div');
                         details.id = `details-${index}`;
                         details.style.display = 'none';
-                        details.innerHTML = Object.keys(groupedOrders[date].totalProducts).map(productName => {
-                            return `<div>${productName} x ${groupedOrders[date].totalProducts[productName]}</div>`;
+                        details.innerHTML = order.products.map(product => {
+                            return `<div>${product.productId.name} x ${product.quantity}</div>`;
                         }).join('');
 
                         // Dodanie przycisku "Usuń zamówienia z tego dnia"
                         const deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Usuń zamówienia z tego dnia';
+                        deleteButton.textContent = 'Usuń zamówienie';
                         deleteButton.onclick = async () => {
                             try {
-                                // Konwersja daty na format YYYY-MM-DD do zapytania DELETE
-                                const deleteFormattedDate = new Date(date).toISOString().split('T')[0];
+                                const deleteFormattedDate = new Date(order.date).toISOString().split('T')[0];
                                 console.log("Sending DELETE request for date: ", deleteFormattedDate);  // Logowanie daty przed wysłaniem
 
-                                // Wysyłanie zapytania DELETE z odpowiednią datą
-                                const deleteResponse = await fetch(`/api/orders/by-date/${deleteFormattedDate}`, {
+                                // Wysyłanie zapytania DELETE
+                                const deleteResponse = await fetch(`/api/client-orders/${userId}/by-date/${deleteFormattedDate}`, {
                                     method: 'DELETE'
                                 });
 
@@ -98,7 +98,7 @@
                         ordersDateList.appendChild(li);
                     });
                 } catch (error) {
-                    console.error('Błąd przy pobieraniu zamówień:', error);
+                    console.error('Błąd przy pobieraniu zamówień użytkownika:', error);
                 }
             }
 

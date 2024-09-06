@@ -65,11 +65,25 @@ const orderSchema = new mongoose.Schema({
         }
     ],
     status: { type: String, default: 'pending' },
-    // Zmieniamy zapis daty na lokalny czas
     date: { type: Date, default: () => new Date() }
 });
 
 const Order = mongoose.model('Order', orderSchema);
+
+// Model Zamówienia dla użytkownika
+const clientOrderSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    products: [
+        {
+            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+            quantity: { type: Number, required: true }
+        }
+    ],
+    status: { type: String, default: 'pending' },
+    date: { type: Date, default: () => new Date() }
+});
+
+const ClientOrder = mongoose.model('ClientOrder', clientOrderSchema);
 
 // Endpointy API dla produktów
 app.get('/api/products', async (req, res) => {
@@ -142,7 +156,7 @@ app.get('/api/cart/:userId', async (req, res) => {
     try {
         const cartItems = await Cart.find({ userId }).populate('productId');
         if (!cartItems || cartItems.length === 0) {
-            return res.status(404).json({ message: 'Cart not found' });
+            return res.status(404).json({ message: 'Koszyk jest pusty' });
         }
         res.status(200).json(cartItems);
     } catch (error) {
@@ -212,7 +226,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Endpoint do wysyłania zamówienia
+// Endpoint do wysyłania zamówienia (zapis do dwóch kolekcji)
 app.post('/api/orders', async (req, res) => {
     const { userId } = req.body;
 
@@ -223,6 +237,7 @@ app.post('/api/orders', async (req, res) => {
             return res.status(400).json({ message: 'Koszyk jest pusty' });
         }
 
+        // Tworzenie zamówienia dla administratora (orders)
         const order = new Order({
             userId,
             products: cartItems.map(item => ({
@@ -231,7 +246,18 @@ app.post('/api/orders', async (req, res) => {
             }))
         });
 
+        // Tworzenie zamówienia dla użytkownika (clientOrders)
+        const clientOrder = new ClientOrder({
+            userId,
+            products: cartItems.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity
+            }))
+        });
+
+        // Zapis w obu kolekcjach
         await order.save();
+        await clientOrder.save();
 
         await Cart.deleteMany({ userId });
 
@@ -241,154 +267,47 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// Pobieranie wszystkich zamówień lub zamówień dla konkretnego użytkownika
-app.get('/api/orders', async (req, res) => {
-    const { userId } = req.query;
+// Pobieranie zamówień dla użytkownika z clientOrders
+app.get('/api/client-orders/:userId', async (req, res) => {
+    const { userId } = req.params;
 
     try {
-        const filter = userId ? { userId } : {};
-        const orders = await Order.find(filter).populate('products.productId').populate('userId');
-        res.status(200).json(orders);
+        const userOrders = await ClientOrder.find({ userId }).populate('products.productId');
+
+        if (!userOrders || userOrders.length === 0) {
+            return res.status(404).json({ message: 'Brak zamówień dla tego użytkownika' });
+        }
+
+        res.status(200).json(userOrders);
     } catch (error) {
+        console.error('Błąd przy pobieraniu zamówień użytkownika:', error);
         res.status(500).json({ message: 'Błąd przy pobieraniu zamówień', error });
     }
 });
 
-// Endpoint do grupowania zamówień według daty i sumowania produktów
-app.get('/api/orders/grouped', async (req, res) => {
-    try {
-        const orders = await Order.find().populate('products.productId');
-
-        const groupedOrders = orders.reduce((acc, order) => {
-            const orderDate = new Date(order.date).toLocaleDateString();
-
-            if (!acc[orderDate]) {
-                acc[orderDate] = { totalProducts: {}, orderIds: [] };
-            }
-
-            order.products.forEach(product => {
-                const productName = product.productId.name;
-                if (!acc[orderDate].totalProducts[productName]) {
-                    acc[orderDate].totalProducts[productName] = 0;
-                }
-                acc[orderDate].totalProducts[productName] += product.quantity;
-            });
-
-            acc[orderDate].orderIds.push(order._id);
-            return acc;
-        }, {});
-
-        res.status(200).json(groupedOrders);
-    } catch (error) {
-        console.error('Błąd przy grupowaniu zamówień:', error);
-        res.status(500).json({ message: 'Error grouping orders', error });
-    }
-});
-
-// Zaktualizowany endpoint do usuwania zamówień z danego dnia z uwzględnieniem strefy czasowej
-app.delete('/api/orders/by-date/:date', async (req, res) => {
-    const { date } = req.params;
+// Usuwanie zamówień z clientOrders (bez wpływu na orders)
+app.delete('/api/client-orders/:userId/by-date/:date', async (req, res) => {
+    const { userId, date } = req.params;
 
     try {
-        // Tworzymy zakres daty od początku do końca dnia w lokalnym czasie
         const startOfDay = new Date(new Date(date).setHours(0, 0, 0, 0));
         const endOfDay = new Date(new Date(date).setHours(23, 59, 59, 999));
 
-        // Znajdowanie zamówień z danego dnia
-        const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
+        const ordersToDelete = await ClientOrder.find({
+            userId,
+            date: { $gte: startOfDay, $lte: endOfDay }
+        });
 
-        if (ordersToDelete.length === 0) {
-            console.log(`Brak zamówień do usunięcia na dzień ${date}`);
-            return res.status(404).json({ message: `Brak zamówień do usunięcia na dzień ${date}` });
+        if (!ordersToDelete.length) {
+            return res.status(404).json({ message: `Brak zamówień do usunięcia na dzień ${date} dla użytkownika ${userId}` });
         }
 
-        console.log(`Znaleziono ${ordersToDelete.length} zamówień do usunięcia na dzień ${date}`);
+        await ClientOrder.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
 
-        // Usuwanie wszystkich zamówień z danego dnia
-        await Order.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
-
-        console.log(`Usunięto ${ordersToDelete.length} zamówień z dnia ${date}`);
-        res.status(200).json({ message: `Zamówienia z dnia ${date} zostały usunięte` });
+        res.status(200).json({ message: `Zamówienia użytkownika ${userId} z dnia ${date} zostały usunięte z clientOrders` });
     } catch (error) {
-        console.error('Błąd przy usuwaniu zamówień z danego dnia:', error);
-        res.status(500).json({ message: 'Error deleting orders by date', error });
-    }
-});
-
-// Przenoszenie zamówienia do zrealizowanych
-app.post('/api/orders/:id/complete', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const order = await Order.findById(id);
-        if (!order) {
-            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
-        }
-
-        order.status = 'completed';
-        await order.save();
-        res.status(200).json({ message: 'Zamówienie przeniesione do zrealizowanych' });
-    } catch (error) {
-        res.status(500).json({ message: 'Błąd podczas przenoszenia zamówienia', error });
-    }
-});
-
-// Pobieranie zrealizowanych zamówień
-app.get('/api/orders/completed', async (req, res) => {
-    try {
-        const completedOrders = await Order.find({ status: 'completed' }).populate('products.productId').populate('userId');
-        res.status(200).json(completedOrders);
-    } catch (error) {
-        console.error('Błąd przy pobieraniu zrealizowanych zamówień:', error);
-        res.status(500).json({ message: 'Error fetching completed orders', error });
-    }
-});
-
-// Przenoszenie zamówienia do opłaconych
-app.post('/api/orders/:id/pay', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const order = await Order.findById(id);
-        if (!order) {
-            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
-        }
-
-        order.status = 'paid';
-        await order.save();
-        res.status(200).json({ message: 'Zamówienie przeniesione do opłaconych' });
-    } catch (error) {
-        res.status(500).json({ message: 'Błąd podczas przenoszenia zamówienia do opłaconych', error });
-    }
-});
-
-// Pobieranie opłaconych zamówień
-app.get('/api/orders/paid', async (req, res) => {
-    try {
-        const paidOrders = await Order.find({ status: 'paid' }).populate('products.productId').populate('userId');
-        res.status(200).json(paidOrders);
-    } catch (error) {
-        console.error('Błąd przy pobieraniu opłaconych zamówień:', error);
-        res.status(500).json({ message: 'Error fetching paid orders', error });
-    }
-});
-
-// Usuwanie zamówienia
-app.delete('/api/orders/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const order = await Order.findById(id);
-        if (!order) {
-            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
-        }
-
-        await Order.deleteOne({ _id: id });
-        console.log(`Zamówienie o ID ${id} zostało usunięte`);
-        res.status(200).json({ message: 'Zamówienie zostało usunięte' });
-    } catch (error) {
-        console.error('Błąd podczas usuwania zamówienia:', error);
-        res.status(500).json({ message: 'Błąd podczas usuwania zamówienia', error });
+        console.error('Błąd przy usuwaniu zamówień użytkownika:', error);
+        res.status(500).json({ message: 'Błąd przy usuwaniu zamówień', error });
     }
 });
 
