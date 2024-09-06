@@ -290,13 +290,12 @@ app.delete('/api/orders/by-date/:date', async (req, res) => {
     const { date } = req.params;
 
     try {
-        // Zmieniamy strefę czasową na lokalną
-        const localTimeZone = 'Europe/Warsaw'; // Przykład dla Polski
-        const startOfDay = new Date(`${date}T00:00:00`).toLocaleString('en-US', { timeZone: localTimeZone });
-        const endOfDay = new Date(`${date}T23:59:59`).toLocaleString('en-US', { timeZone: localTimeZone });
+        // Tworzymy zakres daty od początku do końca dnia w UTC
+        const startOfDay = new Date(new Date(date).setUTCHours(0, 0, 0, 0));
+        const endOfDay = new Date(new Date(date).setUTCHours(23, 59, 59, 999));
 
         // Znajdowanie zamówień z danego dnia
-        const ordersToDelete = await Order.find({ date: { $gte: new Date(startOfDay), $lte: new Date(endOfDay) } });
+        const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
 
         if (ordersToDelete.length === 0) {
             console.log(`Brak zamówień do usunięcia na dzień ${date}`);
