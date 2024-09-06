@@ -255,6 +255,60 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
+// Endpoint do grupowania zamówień według daty i sumowania produktów
+app.get('/api/orders/grouped', async (req, res) => {
+    try {
+        const orders = await Order.find().populate('products.productId');
+
+        const groupedOrders = orders.reduce((acc, order) => {
+            const orderDate = new Date(order.date).toLocaleDateString(); // Grupowanie po dacie
+
+            if (!acc[orderDate]) {
+                acc[orderDate] = { totalProducts: {}, orderIds: [] };
+            }
+
+            // Sumowanie ilości produktów
+            order.products.forEach(product => {
+                const productName = product.productId.name;
+                if (!acc[orderDate].totalProducts[productName]) {
+                    acc[orderDate].totalProducts[productName] = 0;
+                }
+                acc[orderDate].totalProducts[productName] += product.quantity;
+            });
+
+            // Przechowywanie ID zamówienia do późniejszego usuwania
+            acc[orderDate].orderIds.push(order._id);
+            return acc;
+        }, {});
+
+        res.status(200).json(groupedOrders);
+    } catch (error) {
+        console.error('Błąd przy grupowaniu zamówień:', error);
+        res.status(500).json({ message: 'Error grouping orders', error });
+    }
+});
+
+// Endpoint do usuwania zamówień z danego dnia
+app.delete('/api/orders/by-date/:date', async (req, res) => {
+    const { date } = req.params;
+
+    try {
+        const startOfDay = new Date(date).setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date).setHours(23, 59, 59, 999);
+
+        // Znajdowanie zamówień z danego dnia
+        const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });
+
+        // Usuwanie wszystkich zamówień z danego dnia
+        await Order.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
+
+        res.status(200).json({ message: `Zamówienia z dnia ${date} zostały usunięte` });
+    } catch (error) {
+        console.error('Błąd przy usuwaniu zamówień z danego dnia:', error);
+        res.status(500).json({ message: 'Error deleting orders by date', error });
+    }
+});
+
 // Przenoszenie zamówienia do zrealizowanych
 app.post('/api/orders/:id/complete', async (req, res) => {
     const { id } = req.params;
