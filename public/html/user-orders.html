@@ -35,7 +35,7 @@
                 Object.keys(groupedOrders).forEach((date, index) => {
                     const li = document.createElement('li');
                     
-                    // Tworzenie linku do daty
+                    // Wyświetlanie oryginalnej daty
                     const dateLink = document.createElement('a');
                     dateLink.href = '#';
                     dateLink.textContent = date;
@@ -56,17 +56,20 @@
                         return `<div>${productName} x ${groupedOrders[date].totalProducts[productName]}</div>`;
                     }).join('');
 
+                    // Poprawne formatowanie daty na ISO do zapytania DELETE
+                    const formattedDate = new Date(date).toISOString().split('T')[0];
+
                     // Dodanie przycisku "Usuń zamówienia z tego dnia"
                     const deleteButton = document.createElement('button');
                     deleteButton.textContent = 'Usuń zamówienia z tego dnia';
                     deleteButton.onclick = async () => {
                         try {
-                            const deleteResponse = await fetch(`/api/orders/by-date/${date}`, {
+                            const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
                                 method: 'DELETE'
                             });
 
                             if (deleteResponse.ok) {
-                                alert(`Zamówienia z dnia ${date} zostały usunięte`);
+                                alert(`Zamówienia z dnia ${formattedDate} zostały usunięte`);
                                 location.reload();
                             } else {
                                 alert('Wystąpił problem przy usuwaniu zamówień.');
