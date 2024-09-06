@@ -36,12 +36,14 @@
                     ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
                     Object.keys(groupedOrders).forEach((date, index) => {
+                        const formattedDate = new Date(date).toISOString().split('T')[0]; // Formatowanie na YYYY-MM-DD
+                        
                         const li = document.createElement('li');
                         
-                        // Wyświetlanie oryginalnej daty
+                        // Tworzenie linku do daty
                         const dateLink = document.createElement('a');
                         dateLink.href = '#';
-                        dateLink.textContent = date;
+                        dateLink.textContent = formattedDate;
                         dateLink.onclick = (e) => {
                             e.preventDefault();
                             const details = document.getElementById(`details-${index}`);
@@ -58,11 +60,6 @@
                         details.innerHTML = Object.keys(groupedOrders[date].totalProducts).map(productName => {
                             return `<div>${productName} x ${groupedOrders[date].totalProducts[productName]}</div>`;
                         }).join('');
-
-                        // Poprawne formatowanie daty na ISO do zapytania DELETE
-                        const formattedDate = new Date(date).toISOString().split('T')[0];
-                        
-                        console.log("Formatted Date: ", formattedDate);  // Logowanie daty dla sprawdzenia
 
                         // Dodanie przycisku "Usuń zamówienia z tego dnia"
                         const deleteButton = document.createElement('button');
