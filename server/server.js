@@ -71,7 +71,6 @@ const orderSchema = new mongoose.Schema({
 const Order = mongoose.model('Order', orderSchema);
 
 // Endpointy API dla produktów
-
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -117,7 +116,6 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // Endpointy API dla koszyka
-
 app.post('/api/cart', async (req, res) => {
     const { userId, productId, quantity } = req.body;
 
@@ -164,7 +162,6 @@ app.delete('/api/cart/:userId', async (req, res) => {
 });
 
 // Endpointy API dla użytkowników
-
 app.post('/api/users', async (req, res) => {
     const { username, password, role } = req.body;
 
@@ -198,7 +195,6 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // Endpoint do logowania
-
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -216,7 +212,6 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Endpoint do wysyłania zamówienia
-
 app.post('/api/orders', async (req, res) => {
     const { userId } = req.body;
 
@@ -236,25 +231,31 @@ app.post('/api/orders', async (req, res) => {
         });
 
         await order.save();
+
+        // Usunięcie koszyka po złożeniu zamówienia
+        await Cart.deleteMany({ userId });
+
         res.status(200).json({ message: 'Zamówienie zostało złożone', order });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas składania zamówienia', error });
     }
 });
 
-// Pobieranie wszystkich zamówień
-
+// Pobieranie wszystkich zamówień lub zamówień dla konkretnego użytkownika
 app.get('/api/orders', async (req, res) => {
+    const { userId } = req.query;
+
     try {
-        const orders = await Order.find({ status: 'pending' }).populate('products.productId').populate('userId');
+        // Filtracja po użytkowniku, jeśli userId jest podane
+        const filter = userId ? { userId } : {};
+        const orders = await Order.find(filter).populate('products.productId').populate('userId');
         res.status(200).json(orders);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching orders', error });
+        res.status(500).json({ message: 'Błąd przy pobieraniu zamówień', error });
     }
 });
 
 // Przenoszenie zamówienia do zrealizowanych
-
 app.post('/api/orders/:id/complete', async (req, res) => {
     const { id } = req.params;
 
@@ -273,7 +274,6 @@ app.post('/api/orders/:id/complete', async (req, res) => {
 });
 
 // Pobieranie zrealizowanych zamówień
-
 app.get('/api/orders/completed', async (req, res) => {
     try {
         const completedOrders = await Order.find({ status: 'completed' }).populate('products.productId').populate('userId');
@@ -285,7 +285,6 @@ app.get('/api/orders/completed', async (req, res) => {
 });
 
 // Przenoszenie zamówienia do opłaconych
-
 app.post('/api/orders/:id/pay', async (req, res) => {
     const { id } = req.params;
 
@@ -304,7 +303,6 @@ app.post('/api/orders/:id/pay', async (req, res) => {
 });
 
 // Pobieranie opłaconych zamówień
-
 app.get('/api/orders/paid', async (req, res) => {
     try {
         const paidOrders = await Order.find({ status: 'paid' }).populate('products.productId').populate('userId');
@@ -316,7 +314,6 @@ app.get('/api/orders/paid', async (req, res) => {
 });
 
 // Usuwanie zamówienia
-
 app.delete('/api/orders/:id', async (req, res) => {
     const { id } = req.params;
 
@@ -336,14 +333,12 @@ app.delete('/api/orders/:id', async (req, res) => {
 });
 
 // Obsługa głównej strony
-
 app.get('/', (req, res) => {
     console.log('Żądanie do /index.html');
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'index.html'));
 });
 
 // Obsługa innych stron HTML
-
 app.get('/index.html', (req, res) => {
     console.log('Żądanie do /index.html');
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'index.html'));

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twoje zamówienia</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Twoje zamówienia</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Strona główna</a></li>
+                <li><a href="cart.html">Koszyk</a></li>
+                <li><a href="user-orders.html">Twoje zamówienia</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="user-orders">
+            <h2>Zamówienia</h2>
+            <ul id="orders-list"></ul>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userId = localStorage.getItem('userId');
+            const ordersList = document.getElementById('orders-list');
+
+            try {
+                const response = await fetch(`/api/orders?userId=${userId}`);
+                const orders = await response.json();
+
+                if (orders.length === 0) {
+                    ordersList.innerHTML = '<li>Nie masz żadnych zamówień.</li>';
+                    return;
+                }
+
+                orders.forEach(order => {
+                    const li = document.createElement('li');
+                    li.textContent = `Zamówienie z dnia ${new Date(order.date).toLocaleDateString()} - ${order.products.map(p => p.productId.name).join(', ')}`;
+                    ordersList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Błąd przy pobieraniu zamówień:', error);
+                ordersList.innerHTML = '<li>Wystąpił problem z ładowaniem zamówień.</li>';
+            }
+        });
+    </script>
+</body>
+</html>
