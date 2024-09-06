@@ -26,7 +26,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const userId = "ID_ZALOGOWANEGO_UŻYTKOWNIKA"; // Wprowadź dynamiczne ID zalogowanego użytkownika
+            // Pobranie userId z localStorage po zalogowaniu
+            const userId = localStorage.getItem('userId');
+
+            if (!userId) {
+                console.error('Brak ID użytkownika, nie można pobrać zamówień.');
+                return;
+            }
+
             const ordersDateList = document.getElementById('orders-date-list');
 
             async function fetchOrders() {

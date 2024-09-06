@@ -85,6 +85,24 @@ const clientOrderSchema = new mongoose.Schema({
 
 const ClientOrder = mongoose.model('ClientOrder', clientOrderSchema);
 
+// Endpoint do logowania
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const user = await User.findOne({ username, password });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
+        }
+
+        // Zwracamy userId i role użytkownika
+        res.status(200).json({ userId: user._id, role: user.role });
+    } catch (error) {
+        res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
+    }
+});
+
 // Endpointy API dla produktów
 app.get('/api/products', async (req, res) => {
     try {
@@ -206,23 +224,6 @@ app.delete('/api/users/:id', async (req, res) => {
         res.status(200).json({ message: 'User deleted' });
     } catch (error) {
         res.status(400).json({ message: 'Error deleting user', error });
-    }
-});
-
-// Endpoint do logowania
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-
-    try {
-        const user = await User.findOne({ username, password });
-
-        if (!user) {
-            return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
-        }
-
-        res.status(200).json({ userId: user._id, role: user.role });
-    } catch (error) {
-        res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
     }
 });
 
