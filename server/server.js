@@ -290,9 +290,9 @@ app.delete('/api/orders/by-date/:date', async (req, res) => {
     const { date } = req.params;
 
     try {
-        // Tworzymy zakres daty od początku do końca dnia w UTC
-        const startOfDay = new Date(new Date(date).setUTCHours(0, 0, 0, 0));
-        const endOfDay = new Date(new Date(date).setUTCHours(23, 59, 59, 999));
+        // Tworzymy zakres daty od początku do końca dnia w lokalnym czasie
+        const startOfDay = new Date(new Date(date).setHours(0, 0, 0, 0));
+        const endOfDay = new Date(new Date(date).setHours(23, 59, 59, 999));
 
         // Znajdowanie zamówień z danego dnia
         const ordersToDelete = await Order.find({ date: { $gte: startOfDay, $lte: endOfDay } });

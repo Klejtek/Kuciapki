@@ -36,8 +36,12 @@
                     ordersDateList.innerHTML = ''; // Wyczyść listę przed załadowaniem nowych danych
 
                     Object.keys(groupedOrders).forEach((date, index) => {
-                        // Poprawienie formatowania daty
-                        const formattedDate = new Date(date).toISOString().split('T')[0]; // Formatowanie na YYYY-MM-DD
+                        // Poprawienie formatowania daty w lokalnej strefie czasowej
+                        const formattedDate = new Date(date).toLocaleDateString('pl-PL', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
 
                         const li = document.createElement('li');
 
@@ -67,10 +71,12 @@
                         deleteButton.textContent = 'Usuń zamówienia z tego dnia';
                         deleteButton.onclick = async () => {
                             try {
-                                console.log("Sending DELETE request for date: ", formattedDate);  // Logowanie daty przed wysłaniem
+                                // Konwersja daty na format YYYY-MM-DD do zapytania DELETE
+                                const deleteFormattedDate = new Date(date).toISOString().split('T')[0];
+                                console.log("Sending DELETE request for date: ", deleteFormattedDate);  // Logowanie daty przed wysłaniem
 
                                 // Wysyłanie zapytania DELETE z odpowiednią datą
-                                const deleteResponse = await fetch(`/api/orders/by-date/${formattedDate}`, {
+                                const deleteResponse = await fetch(`/api/orders/by-date/${deleteFormattedDate}`, {
                                     method: 'DELETE'
                                 });
 
