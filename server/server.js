@@ -170,24 +170,6 @@ app.post('/api/cart', async (req, res) => {
     }
 });
 
-    const { userId, productId, quantity } = req.body;
-
-    try {
-        let cartItem = await Cart.findOne({ userId, productId });
-
-        if (cartItem) {
-            cartItem.quantity += quantity;
-        } else {
-            cartItem = new Cart({ userId, productId, quantity });
-        }
-
-        await cartItem.save();
-        res.status(200).json(cartItem);
-    } catch (error) {
-        res.status(500).json({ message: 'Error adding product to cart', error });
-    }
-});
-
 app.get('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
 
