@@ -33,7 +33,11 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCart(); // Automatyczna aktualizacja koszyka po załadowaniu strony
+        });
+
+        async function updateCart() {
             const cartList = document.getElementById('cart-items');
             const userId = localStorage.getItem('userId');
 
@@ -53,6 +57,7 @@
                 if (cartItems.length === 0) {
                     cartList.innerHTML = '<p>Koszyk jest pusty</p>';
                 } else {
+                    cartList.innerHTML = ''; // Wyczyść istniejący widok koszyka
                     cartItems.forEach(item => {
                         const productItem = document.createElement('li');
                         productItem.className = 'cart-item';
@@ -62,12 +67,15 @@
                         `;
                         cartList.appendChild(productItem);
                     });
+
+                    // Aktualizacja liczby produktów w koszyku
+                    document.getElementById('cart-count').textContent = cartItems.reduce((acc, item) => acc + item.quantity, 0);
                 }
             } catch (error) {
                 console.error('Error fetching cart:', error);
                 cartList.innerHTML = '<p>Wystąpił problem z ładowaniem koszyka</p>';
             }
-        });
+        }
 
         async function sendOrder() {
             const userId = localStorage.getItem('userId');
