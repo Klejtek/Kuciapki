@@ -209,7 +209,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
         }
 
-        res.status(200).json({ userId: user._id, role: user.role }); // Zwracamy userId i role
+        res.status(200).json({ userId: user._id, username: user.username, role: user.role }); // Zwracamy userId i role
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
     }
