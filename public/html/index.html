@@ -1,3 +1,5 @@
+# Let's modify the index.html file to remove the quantity input
+updated_html_content = """
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -14,11 +16,11 @@
             <ul>
                 <li><a href="index.html">Sklep</a></li>
                 <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
-		<li><a href="user-orders.html">Twoje zamówienia</a></li>
-                <li><a href="#" id="logout-button">Wyloguj</a></li> <!-- Przycisk na stałe ustawiony jako Wyloguj -->
+                <li><a href="user-orders.html">Twoje zamówienia</a></li>
+                <li><a href="#" id="logout-button">Wyloguj</a></li>
             </ul>
         </nav>
-        <div id="user-info" style="color: white; padding: 10px;"></div> <!-- Miejsce na wyświetlenie zalogowanego użytkownika -->
+        <div id="user-info" style="color: white; padding: 10px;"></div>
     </header>
 
     <main>
@@ -27,7 +29,7 @@
         </section>
     </main>
 
-    <div id="floating-notification"></div> <!-- Element na pływające powiadomienie -->
+    <div id="floating-notification"></div>
 
     <footer>
         <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
@@ -70,7 +72,6 @@
                         productItem.innerHTML = `
                             <h3>${product.name}</h3>
                             <img src="/images/${product.image}.webp" alt="${product.name}">
-			    <input type="number" id="quantity-${product._id}" value="1" min="1">
                             <button onclick="addToCart('${product._id}')">Dodaj do koszyka</button>
                         `;
                         productList.appendChild(productItem);
@@ -146,3 +147,11 @@
     </script>
 </body>
 </html>
+"""
+
+# Save the updated content back to the file
+output_file_path = '/mnt/data/updated_index.html'
+with open(output_file_path, 'w', encoding='utf-8') as updated_file:
+    updated_file.write(updated_html_content)
+
+output_file_path
