@@ -70,6 +70,7 @@
                         productItem.innerHTML = `
                             <h3>${product.name}</h3>
                             <img src="/images/${product.image}.webp" alt="${product.name}">
+			    <input type="number" id="quantity-${product._id}" value="1" min="1">
                             <button onclick="addToCart('${product._id}')">Dodaj do koszyka</button>
                         `;
                         productList.appendChild(productItem);

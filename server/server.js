@@ -149,7 +149,27 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // Endpointy API dla koszyka
+
+// Endpoint API for adding products to the cart with quantity
 app.post('/api/cart', async (req, res) => {
+    const { userId, productId, quantity } = req.body;
+
+    try {
+        let cartItem = await Cart.findOne({ userId, productId });
+
+        if (cartItem) {
+            cartItem.quantity += quantity; // Update quantity if item exists
+        } else {
+            cartItem = new Cart({ userId, productId, quantity }); // Create new cart item
+        }
+
+        await cartItem.save();
+        res.status(200).json(cartItem); // Send back the updated cart item
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding product to cart', error });
+    }
+});
+
     const { userId, productId, quantity } = req.body;
 
     try {
