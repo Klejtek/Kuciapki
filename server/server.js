@@ -97,7 +97,7 @@ app.post('/api/login', async (req, res) => {
         }
 
         // Zwracamy userId i role użytkownika
-        res.status(200).json({ userId: user._id, role: user.role });
+        res.status(200).json({ userId: user._id, username: user.username, role: user.role });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
     }
