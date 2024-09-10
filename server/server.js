@@ -41,7 +41,7 @@ const Product = mongoose.model('Product', productSchema);
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: 'user' }
+    role: { type: String, default: 'user' } // Domyślna rola to 'user'
 });
 
 const User = mongoose.model('User', userSchema);
@@ -64,46 +64,14 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true }
         }
     ],
-    status: { type: String, default: 'pending' },
-    date: { type: Date, default: () => new Date() }
+    status: { type: String, default: 'pending' }, // Nowe pole statusu zamówienia
+    date: { type: Date, default: Date.now }
 });
 
 const Order = mongoose.model('Order', orderSchema);
 
-// Model Zamówienia dla użytkownika
-const clientOrderSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    products: [
-        {
-            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-            quantity: { type: Number, required: true }
-        }
-    ],
-    status: { type: String, default: 'pending' },
-    date: { type: Date, default: () => new Date() }
-});
-
-const ClientOrder = mongoose.model('ClientOrder', clientOrderSchema);
-
-// Endpoint do logowania
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-
-    try {
-        const user = await User.findOne({ username, password });
-
-        if (!user) {
-            return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
-        }
-
-        // Zwracamy userId i role użytkownika
-        res.status(200).json({ userId: user._id, username: user.username, role: user.role });
-    } catch (error) {
-        res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
-    }
-});
-
 // Endpointy API dla produktów
+
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -150,7 +118,6 @@ app.delete('/api/products/:id', async (req, res) => {
 
 // Endpointy API dla koszyka
 
-// Endpoint API for adding products to the cart with quantity
 app.post('/api/cart', async (req, res) => {
     const { userId, productId, quantity } = req.body;
 
@@ -158,13 +125,13 @@ app.post('/api/cart', async (req, res) => {
         let cartItem = await Cart.findOne({ userId, productId });
 
         if (cartItem) {
-            cartItem.quantity += quantity; // Update quantity if item exists
+            cartItem.quantity += quantity;
         } else {
-            cartItem = new Cart({ userId, productId, quantity }); // Create new cart item
+            cartItem = new Cart({ userId, productId, quantity });
         }
 
         await cartItem.save();
-        res.status(200).json(cartItem); // Send back the updated cart item
+        res.status(200).json(cartItem);
     } catch (error) {
         res.status(500).json({ message: 'Error adding product to cart', error });
     }
@@ -176,7 +143,7 @@ app.get('/api/cart/:userId', async (req, res) => {
     try {
         const cartItems = await Cart.find({ userId }).populate('productId');
         if (!cartItems || cartItems.length === 0) {
-            return res.status(404).json({ message: 'Koszyk jest pusty' });
+            return res.status(404).json({ message: 'Cart not found' });
         }
         res.status(200).json(cartItems);
     } catch (error) {
@@ -197,6 +164,7 @@ app.delete('/api/cart/:userId', async (req, res) => {
 });
 
 // Endpointy API dla użytkowników
+
 app.post('/api/users', async (req, res) => {
     const { username, password, role } = req.body;
 
@@ -229,7 +197,26 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
-// Endpoint do wysyłania zamówienia (zapis do dwóch kolekcji)
+// Endpoint do logowania
+
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const user = await User.findOne({ username, password });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
+        }
+
+        res.status(200).json({ userId: user._id, role: user.role }); // Zwracamy userId i role
+    } catch (error) {
+        res.status(500).json({ message: 'Wystąpił błąd podczas logowania', error });
+    }
+});
+
+// Endpoint do wysyłania zamówienia
+
 app.post('/api/orders', async (req, res) => {
     const { userId } = req.body;
 
@@ -240,7 +227,6 @@ app.post('/api/orders', async (req, res) => {
             return res.status(400).json({ message: 'Koszyk jest pusty' });
         }
 
-        // Tworzenie zamówienia dla administratora (orders)
         const order = new Order({
             userId,
             products: cartItems.map(item => ({
@@ -249,78 +235,115 @@ app.post('/api/orders', async (req, res) => {
             }))
         });
 
-        // Tworzenie zamówienia dla użytkownika (clientOrders)
-        const clientOrder = new ClientOrder({
-            userId,
-            products: cartItems.map(item => ({
-                productId: item.productId,
-                quantity: item.quantity
-            }))
-        });
-
-        // Zapis w obu kolekcjach
         await order.save();
-        await clientOrder.save();
-
-        await Cart.deleteMany({ userId });
-
         res.status(200).json({ message: 'Zamówienie zostało złożone', order });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas składania zamówienia', error });
     }
 });
 
-// Pobieranie zamówień dla użytkownika z clientOrders
-app.get('/api/client-orders/:userId', async (req, res) => {
-    const { userId } = req.params;
+// Pobieranie wszystkich zamówień
 
+app.get('/api/orders', async (req, res) => {
     try {
-        const userOrders = await ClientOrder.find({ userId }).populate('products.productId');
-
-        if (!userOrders || userOrders.length === 0) {
-            return res.status(404).json({ message: 'Brak zamówień dla tego użytkownika' });
-        }
-
-        res.status(200).json(userOrders);
+        const orders = await Order.find({ status: 'pending' }).populate('products.productId').populate('userId');
+        res.status(200).json(orders);
     } catch (error) {
-        console.error('Błąd przy pobieraniu zamówień użytkownika:', error);
-        res.status(500).json({ message: 'Błąd przy pobieraniu zamówień', error });
+        res.status(500).json({ message: 'Error fetching orders', error });
     }
 });
 
-// Usuwanie zamówień z clientOrders (bez wpływu na orders)
-app.delete('/api/client-orders/:userId/by-date/:date', async (req, res) => {
-    const { userId, date } = req.params;
+// Przenoszenie zamówienia do zrealizowanych
+
+app.post('/api/orders/:id/complete', async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const startOfDay = new Date(new Date(date).setHours(0, 0, 0, 0));
-        const endOfDay = new Date(new Date(date).setHours(23, 59, 59, 999));
-
-        const ordersToDelete = await ClientOrder.find({
-            userId,
-            date: { $gte: startOfDay, $lte: endOfDay }
-        });
-
-        if (!ordersToDelete.length) {
-            return res.status(404).json({ message: `Brak zamówień do usunięcia na dzień ${date} dla użytkownika ${userId}` });
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
         }
 
-        await ClientOrder.deleteMany({ _id: { $in: ordersToDelete.map(order => order._id) } });
-
-        res.status(200).json({ message: `Zamówienia użytkownika ${userId} z dnia ${date} zostały usunięte z clientOrders` });
+        order.status = 'completed';
+        await order.save();
+        res.status(200).json({ message: 'Zamówienie przeniesione do zrealizowanych' });
     } catch (error) {
-        console.error('Błąd przy usuwaniu zamówień użytkownika:', error);
-        res.status(500).json({ message: 'Błąd przy usuwaniu zamówień', error });
+        res.status(500).json({ message: 'Błąd podczas przenoszenia zamówienia', error });
+    }
+});
+
+// Pobieranie zrealizowanych zamówień
+
+app.get('/api/orders/completed', async (req, res) => {
+    try {
+        const completedOrders = await Order.find({ status: 'completed' }).populate('products.productId').populate('userId');
+        res.status(200).json(completedOrders);
+    } catch (error) {
+        console.error('Błąd przy pobieraniu zrealizowanych zamówień:', error);
+        res.status(500).json({ message: 'Error fetching completed orders', error });
+    }
+});
+
+// Przenoszenie zamówienia do opłaconych
+
+app.post('/api/orders/:id/pay', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
+        }
+
+        order.status = 'paid';
+        await order.save();
+        res.status(200).json({ message: 'Zamówienie przeniesione do opłaconych' });
+    } catch (error) {
+        res.status(500).json({ message: 'Błąd podczas przenoszenia zamówienia do opłaconych', error });
+    }
+});
+
+// Pobieranie opłaconych zamówień
+
+app.get('/api/orders/paid', async (req, res) => {
+    try {
+        const paidOrders = await Order.find({ status: 'paid' }).populate('products.productId').populate('userId');
+        res.status(200).json(paidOrders);
+    } catch (error) {
+        console.error('Błąd przy pobieraniu opłaconych zamówień:', error);
+        res.status(500).json({ message: 'Error fetching paid orders', error });
+    }
+});
+
+// Usuwanie zamówienia
+
+app.delete('/api/orders/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Zamówienie nie znalezione' });
+        }
+
+        await Order.deleteOne({ _id: id });
+        console.log(`Zamówienie o ID ${id} zostało usunięte`);
+        res.status(200).json({ message: 'Zamówienie zostało usunięte' });
+    } catch (error) {
+        console.error('Błąd podczas usuwania zamówienia:', error);
+        res.status(500).json({ message: 'Błąd podczas usuwania zamówienia', error });
     }
 });
 
 // Obsługa głównej strony
+
 app.get('/', (req, res) => {
     console.log('Żądanie do /index.html');
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'index.html'));
 });
 
 // Obsługa innych stron HTML
+
 app.get('/index.html', (req, res) => {
     console.log('Żądanie do /index.html');
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'index.html'));
@@ -352,11 +375,6 @@ app.get('/admin-products.html', (req, res) => {
 
 app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
-});
-
-// Dodany endpoint do user-orders.html
-app.get('/user-orders.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'html', 'user-orders.html'));
 });
 
 app.listen(PORT, () => {
