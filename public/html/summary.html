@@ -36,7 +36,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const response = await fetch('/api/summary');
+            const response = await fetch('https://kuciapki.onrender.com');
             const summary = await response.json();
             
             const table = document.getElementById('summary-table');
