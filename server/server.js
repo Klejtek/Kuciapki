@@ -424,6 +424,11 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
 });
 
+// Dodany endpoint do obsługi summary.html
+app.get('/summary.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'html', 'summary.html'));
+});
+
 // Obsługa strony "Twoje zamówienia"
 app.get('/user-orders.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'user-orders.html'));
