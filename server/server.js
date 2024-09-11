@@ -350,6 +350,38 @@ app.delete('/api/orders/:id', async (req, res) => {
     }
 });
 
+// Dodanie podsumowania zamówień według użytkowników
+
+app.get('/api/summary', async (req, res) => {
+    try {
+        const orders = await Order.find({ status: 'completed' }).populate('products.productId').populate('userId');
+        
+        const summary = {};
+
+        orders.forEach(order => {
+            const userName = order.userId.username;
+
+            if (!summary[userName]) {
+                summary[userName] = {};
+            }
+
+            order.products.forEach(product => {
+                const productName = product.productId.name;
+
+                if (!summary[userName][productName]) {
+                    summary[userName][productName] = 0;
+                }
+
+                summary[userName][productName] += product.quantity;
+            });
+        });
+
+        res.status(200).json(summary);
+    } catch (error) {
+        res.status(500).json({ message: 'Error generating summary', error });
+    }
+});
+
 // Obsługa głównej strony
 
 app.get('/', (req, res) => {

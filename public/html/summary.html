@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podsumowanie Zamówień</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Panel Administracyjny - Podsumowanie</div>
+        <nav>
+            <ul>
+                <li><a href="orders.html">Zamówienia</a></li>
+                <li><a href="completed-orders.html">Zamówienia Zrealizowane</a></li>
+                <li><a href="paid-orders.html">Zamówienia Opłacone</a></li>
+                <li><a href="summary.html">Podsumowanie</a></li>
+                <li><a href="admin-products.html">Zarządzanie Produktami</a></li>
+                <li><a href="admin.html">Panel Główny</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="summary">
+            <h2>Podsumowanie Zamówień</h2>
+            <table id="summary-table" border="1">
+                <!-- Tabela zostanie wypełniona dynamicznie -->
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const response = await fetch('/api/summary');
+            const summary = await response.json();
+            
+            const table = document.getElementById('summary-table');
+
+            // Tworzenie nagłówka tabeli
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>Produkt</th>';
+            
+            // Pobranie listy użytkowników z obiektów (kolumny)
+            const users = Object.keys(summary);
+            users.forEach(user => {
+                const th = document.createElement('th');
+                th.textContent = user;
+                headerRow.appendChild(th);
+            });
+
+            table.appendChild(headerRow);
+
+            // Zestawienie produktów
+            const productNames = new Set();
+
+            users.forEach(user => {
+                Object.keys(summary[user]).forEach(product => {
+                    productNames.add(product);
+                });
+            });
+
+            productNames.forEach(product => {
+                const row = document.createElement('tr');
+                const productCell = document.createElement('td');
+                productCell.textContent = product;
+                row.appendChild(productCell);
+
+                users.forEach(user => {
+                    const cell = document.createElement('td');
+                    cell.textContent = summary[user][product] || 0;
+                    row.appendChild(cell);
+                });
+
+                table.appendChild(row);
+            });
+        });
+    </script>
+</body>
+</html>
