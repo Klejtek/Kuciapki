@@ -397,6 +397,35 @@ app.get('/api/orders/:userId', async (req, res) => {
     }
 });
 
+// Dodanie endpointu do usuwania zamówień na podstawie daty
+app.delete('/api/orders/:userId/by-date/:date', async (req, res) => {
+    const { userId, date } = req.params;
+    
+    try {
+        // Konwertuj datę na format ISO, aby dopasować w bazie danych
+        const startDate = new Date(date);
+        const endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 1);
+
+        const deletedOrders = await Order.deleteMany({
+            userId,
+            date: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        });
+
+        if (deletedOrders.deletedCount === 0) {
+            return res.status(404).json({ message: 'Nie znaleziono zamówień do usunięcia' });
+        }
+
+        res.status(200).json({ message: `Zamówienia z dnia ${date} zostały usunięte` });
+    } catch (error) {
+        console.error('Błąd przy usuwaniu zamówienia:', error);
+        res.status(500).json({ message: 'Wystąpił błąd przy usuwaniu zamówienia', error });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Serwer działa na http://localhost:${PORT}`);
 });
