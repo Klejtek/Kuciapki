@@ -377,6 +377,11 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
 });
 
+// Obsługa strony "Twoje zamówienia" (DODANE)
+app.get('/user-orders.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'html', 'user-orders.html'));
+});
+
 app.listen(PORT, () => {
     console.log(`Serwer działa na http://localhost:${PORT}`);
 });
