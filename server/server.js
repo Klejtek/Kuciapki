@@ -152,6 +152,21 @@ app.get('/api/cart/:userId', async (req, res) => {
     }
 });
 
+// Nowy endpoint do usuwania pojedynczego produktu z koszyka
+app.delete('/api/cart/:userId/:productId', async (req, res) => {
+    const { userId, productId } = req.params;
+
+    try {
+        const deletedItem = await Cart.findOneAndDelete({ userId, productId });
+        if (!deletedItem) {
+            return res.status(404).json({ message: 'Produkt nie został znaleziony w koszyku' });
+        }
+        res.status(200).json({ message: 'Produkt został usunięty z koszyka' });
+    } catch (error) {
+        res.status(500).json({ message: 'Błąd podczas usuwania produktu z koszyka', error });
+    }
+});
+
 app.delete('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
 
