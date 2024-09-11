@@ -64,6 +64,7 @@
                         productItem.innerHTML = `
                             <p>Produkt: ${item.productId.name}</p>
                             <p>Ilość: ${item.quantity}</p>
+                            <button onclick="removeFromCart('${item.productId._id}')">Usuń z koszyka</button> <!-- Przycisk "Usuń" -->
                         `;
                         cartList.appendChild(productItem);
                     });
@@ -77,6 +78,30 @@
             }
         }
 
+        // Funkcja usuwająca produkt z koszyka
+        async function removeFromCart(productId) {
+            const userId = localStorage.getItem('userId');
+            if (!userId || !productId) {
+                alert('Brak ID użytkownika lub produktu');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cart/${userId}/${productId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('Produkt został usunięty z koszyka');
+                    updateCart(); // Zaktualizuj koszyk po usunięciu produktu
+                } else {
+                    alert('Wystąpił problem przy usuwaniu produktu z koszyka');
+                }
+            } catch (error) {
+                console.error('Error removing product from cart:', error);
+            }
+        }
+
         async function sendOrder() {
             const userId = localStorage.getItem('userId');
             if (!userId) {
@@ -85,7 +110,6 @@
             }
 
             try {
-                // Wysłanie zamówienia na serwer
                 const response = await fetch(`https://kuciapki.onrender.com/api/orders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
