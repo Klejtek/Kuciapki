@@ -37,6 +37,7 @@
 
             async function fetchOrders() {
                 try {
+                    // Pobierz zamówienia użytkownika
                     const response = await fetch(`/api/orders/${userId}`);
                     const userOrders = await response.json();
 
@@ -82,7 +83,8 @@
                                 const deleteFormattedDate = new Date(order.date).toISOString().split('T')[0];
                                 console.log("Sending DELETE request for date: ", deleteFormattedDate);
 
-                                const deleteResponse = await fetch(`/api/client-orders/${userId}/by-date/${deleteFormattedDate}`, {
+                                // Wysłanie żądania DELETE na endpoint na podstawie daty
+                                const deleteResponse = await fetch(`/api/orders/${userId}/by-date/${deleteFormattedDate}`, {
                                     method: 'DELETE'
                                 });
 
