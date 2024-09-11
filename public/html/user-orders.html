@@ -37,7 +37,7 @@
 
             async function fetchOrders() {
                 try {
-                    const response = await fetch(`/api/client-orders/${userId}`);
+                    const response = await fetch(`/api/orders/${userId}`);
                     const userOrders = await response.json();
 
                     console.log("Odpowiedź serwera: ", userOrders);

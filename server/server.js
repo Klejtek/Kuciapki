@@ -377,9 +377,24 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'admin.html'));
 });
 
-// Obsługa strony "Twoje zamówienia" (DODANE)
+// Obsługa strony "Twoje zamówienia"
 app.get('/user-orders.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'html', 'user-orders.html'));
+});
+
+// Dodanie brakującego endpointu do pobierania zamówień użytkownika
+app.get('/api/orders/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const orders = await Order.find({ userId }).populate('products.productId');
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ message: 'Nie znaleziono zamówień dla tego użytkownika' });
+        }
+        res.status(200).json(orders);
+    } catch (error) {
+        console.error('Błąd przy pobieraniu zamówień użytkownika:', error);
+        res.status(500).json({ message: 'Błąd przy pobieraniu zamówień', error });
+    }
 });
 
 app.listen(PORT, () => {
