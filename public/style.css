@@ -233,9 +233,58 @@ footer {
     }
 }
 
-/* --- Zmiany dla sekcji podsumowania zamówień --- */
+/* --- Zmiany dla sekcji zamówień --- */
 
-/* Dodanie przestrzeni dla sekcji podsumowania zamówień */
+/* Dodanie przestrzeni dla sekcji zamówień */
+#orders {
+    padding-top: 160px; /* Więcej miejsca nad sekcją na małych ekranach */
+    margin-bottom: 20px; /* Dodanie marginesu na dole */
+}
+
+#orders h2 {
+    margin-bottom: 20px; /* Więcej miejsca pod nagłówkiem */
+}
+
+#orders-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Dodanie dodatkowych marginesów dla przycisków */
+button {
+    margin: 10px 0; /* Margines między przyciskami a innymi elementami */
+}
+
+/* Dla małych ekranów */
+@media (max-width: 768px) {
+    #orders {
+        padding-top: 180px; /* Większy odstęp od nagłówka na małych ekranach */
+        margin-bottom: 40px; /* Dodatkowa przestrzeń na dole */
+    }
+
+    #orders-list li {
+        padding: 10px 0; /* Większy odstęp między elementami listy */
+    }
+
+    button {
+        width: 100%; /* Przyciski na pełną szerokość ekranu */
+    }
+}
+
+/* Dla bardzo małych ekranów */
+@media (max-width: 480px) {
+    #orders {
+        padding-top: 200px; /* Jeszcze większy odstęp dla bardzo małych ekranów */
+    }
+
+    button {
+        font-size: 0.8rem; /* Zmniejszenie rozmiaru czcionki przycisków */
+    }
+}
+
+/* --- Zmiany dla sekcji zrealizowanych zamówień --- */
+
 #completed-orders {
     padding-top: 160px; /* Więcej miejsca nad sekcją na małych ekranach */
     margin-bottom: 20px; /* Dodanie marginesu na dole */
@@ -251,12 +300,6 @@ footer {
     margin: 0;
 }
 
-/* Dodanie dodatkowych marginesów dla przycisków */
-button {
-    margin: 10px 0; /* Margines między przyciskami a innymi elementami */
-}
-
-/* Dla małych ekranów */
 @media (max-width: 768px) {
     #completed-orders {
         padding-top: 180px; /* Większy odstęp od nagłówka na małych ekranach */
@@ -266,19 +309,10 @@ button {
     #completed-orders-list li {
         padding: 10px 0; /* Większy odstęp między elementami listy */
     }
-
-    button {
-        width: 100%; /* Przyciski na pełną szerokość ekranu */
-    }
 }
 
-/* Dla bardzo małych ekranów */
 @media (max-width: 480px) {
     #completed-orders {
         padding-top: 200px; /* Jeszcze większy odstęp dla bardzo małych ekranów */
-    }
-
-    button {
-        font-size: 0.8rem; /* Zmniejszenie rozmiaru czcionki przycisków */
     }
 }
