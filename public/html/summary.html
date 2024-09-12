@@ -59,6 +59,14 @@
 
             // Zestawienie produktów
             const productNames = new Set();
+
+            // Najpierw dodajemy wszystkie produkty do zestawu
+            users.forEach(user => {
+                Object.keys(summary[user]).forEach(product => {
+                    productNames.add(product);
+                });
+            });
+
             const userTotals = {}; // Obiekt, który przechowa sumy zamówień dla użytkowników
 
             // Inicjalizacja licznika dla każdego użytkownika
@@ -66,6 +74,7 @@
                 userTotals[user] = 0;
             });
 
+            // Dodanie wierszy produktów
             productNames.forEach(product => {
                 const row = document.createElement('tr');
                 const productCell = document.createElement('td');
