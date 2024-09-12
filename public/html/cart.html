@@ -20,7 +20,21 @@
     <main>
         <section id="cart">
             <h2>Twój Koszyk</h2>
-            <ul id="cart-items"></ul>
+            
+            <!-- Nowa tabela koszyka -->
+            <table id="cart-table" border="1">
+                <thead>
+                    <tr>
+                        <th>Produkt</th>
+                        <th>Ilość</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="cart-items">
+                    <!-- Produkty z koszyka będą tutaj dynamicznie wstawiane -->
+                </tbody>
+            </table>
+            
             <button id="send-order" onclick="sendOrder()">Wyślij zamówienie</button>
         </section>
     </main>
@@ -35,12 +49,12 @@
         });
 
         async function updateCart() {
-            const cartList = document.getElementById('cart-items');
+            const cartTableBody = document.getElementById('cart-items');
             const userId = localStorage.getItem('userId');
 
             if (!userId) {
                 console.error('Brak userId w localStorage');
-                cartList.innerHTML = '<p>Wystąpił problem: brak ID użytkownika.</p>';
+                cartTableBody.innerHTML = '<tr><td colspan="3">Wystąpił problem: brak ID użytkownika.</td></tr>';
                 return;
             }
 
@@ -49,7 +63,7 @@
                 
                 // Obsługa statusu 404 (pusty koszyk)
                 if (response.status === 404) {
-                    cartList.innerHTML = '<p>Koszyk jest pusty</p>';
+                    cartTableBody.innerHTML = '<tr><td colspan="3">Koszyk jest pusty</td></tr>';
                     document.getElementById('cart-count').textContent = '0';
                     return;
                 }
@@ -61,18 +75,17 @@
                 const cartItems = await response.json();
 
                 if (cartItems.length === 0) {
-                    cartList.innerHTML = '<p>Koszyk jest pusty</p>';
+                    cartTableBody.innerHTML = '<tr><td colspan="3">Koszyk jest pusty</td></tr>';
                 } else {
-                    cartList.innerHTML = ''; // Wyczyść istniejący widok koszyka
+                    cartTableBody.innerHTML = ''; // Wyczyść istniejący widok koszyka
                     cartItems.forEach(item => {
-                        const productItem = document.createElement('li');
-                        productItem.className = 'cart-item';
-                        productItem.innerHTML = `
-                            <p>Produkt: ${item.productId.name}</p>
-                            <p>Ilość: ${item.quantity}</p>
-                            <button onclick="removeFromCart('${item.productId._id}')">Usuń z koszyka</button> <!-- Przycisk "Usuń" -->
+                        const productRow = document.createElement('tr');
+                        productRow.innerHTML = `
+                            <td>${item.productId.name}</td>
+                            <td>${item.quantity}</td>
+                            <td><button onclick="removeFromCart('${item.productId._id}')">Usuń</button></td> <!-- Przycisk "Usuń" -->
                         `;
-                        cartList.appendChild(productItem);
+                        cartTableBody.appendChild(productRow);
                     });
 
                     // Aktualizacja liczby produktów w koszyku
@@ -80,7 +93,7 @@
                 }
             } catch (error) {
                 console.error('Error fetching cart:', error);
-                cartList.innerHTML = '<p>Wystąpił problem z ładowaniem koszyka</p>';
+                cartTableBody.innerHTML = '<tr><td colspan="3">Wystąpił problem z ładowaniem koszyka</td></tr>';
             }
         }
 
