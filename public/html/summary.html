@@ -59,14 +59,12 @@
 
             // Zestawienie produktów
             const productNames = new Set();
+            const userTotals = {}; // Obiekt, który przechowa sumy zamówień dla użytkowników
 
+            // Inicjalizacja licznika dla każdego użytkownika
             users.forEach(user => {
-                Object.keys(summary[user]).forEach(product => {
-                    productNames.add(product);
-                });
+                userTotals[user] = 0;
             });
-
-            let totalUserOrders = 0; // Suma wszystkich zamówień użytkowników
 
             productNames.forEach(product => {
                 const row = document.createElement('tr');
@@ -83,7 +81,7 @@
                     row.appendChild(cell);
 
                     productTotal += quantity; // Dodanie do sumy produktu
-                    totalUserOrders += quantity; // Dodanie do całkowitej sumy użytkownika
+                    userTotals[user] += quantity; // Dodanie do sumy dla użytkownika
                 });
 
                 // Dodanie sumy dla produktu
@@ -94,17 +92,22 @@
                 table.appendChild(row);
             });
 
-            // Dodanie podsumowania w stopce
+            // Dodanie podsumowania w stopce - łączna liczba zamówionych produktów przez użytkowników
             const footerRow = document.createElement('tr');
             const footerCell = document.createElement('td');
-            footerCell.setAttribute('colspan', users.length + 1); // Kolumny użytkowników + kolumna Produkt
-            footerCell.textContent = "Razem zamówione przez użytkowników:";
+            footerCell.innerHTML = '<strong>Razem zamówione przez użytkowników:</strong>';
             footerRow.appendChild(footerCell);
 
-            // Komórka z łączną liczbą zamówionych produktów
-            const totalUserCell = document.createElement('td');
-            totalUserCell.textContent = totalUserOrders;
-            footerRow.appendChild(totalUserCell);
+            // Dodanie sum dla każdego użytkownika w stopce
+            users.forEach(user => {
+                const totalUserCell = document.createElement('td');
+                totalUserCell.textContent = userTotals[user];
+                footerRow.appendChild(totalUserCell);
+            });
+
+            // Dodanie pustej komórki na końcu, aby wyrównać z kolumną sumy
+            const emptyCell = document.createElement('td');
+            footerRow.appendChild(emptyCell);
 
             table.appendChild(footerRow);
         });
