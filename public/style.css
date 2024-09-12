@@ -37,7 +37,7 @@ nav ul li a {
 
 main {
     padding: 2rem;
-    padding-top: 100px; /* Dodatkowa przestrzeń dla stałego nagłówka */
+    padding-top: 120px; /* Zwiększona przestrzeń dla stałego nagłówka */
     padding-bottom: 120px; /* Dodatkowa przestrzeń dla widgetu koszyka */
 }
 
@@ -165,8 +165,7 @@ footer {
     }
 
     main {
-        padding: 1rem;
-        padding-top: 80px;
+        padding-top: 140px; /* Większy odstęp dla mniejszych ekranów, aby nie ucinało treści */
         padding-bottom: 100px;
     }
 
@@ -226,5 +225,10 @@ footer {
 
     nav ul {
         font-size: 0.9rem;
+    }
+
+    main {
+        padding-top: 160px; /* Dodatkowy odstęp dla bardzo małych ekranów */
+        padding-bottom: 100px;
     }
 }
