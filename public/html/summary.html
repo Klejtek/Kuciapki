@@ -50,6 +50,11 @@
                 headerRow.appendChild(th);
             });
 
+            // Dodanie nagłówka "Razem zamówione"
+            const totalHeader = document.createElement('th');
+            totalHeader.textContent = "Razem zamówione";
+            headerRow.appendChild(totalHeader);
+
             table.appendChild(headerRow);
 
             // Zestawienie produktów
@@ -61,20 +66,47 @@
                 });
             });
 
+            let totalUserOrders = 0; // Suma wszystkich zamówień użytkowników
+
             productNames.forEach(product => {
                 const row = document.createElement('tr');
                 const productCell = document.createElement('td');
                 productCell.textContent = product;
                 row.appendChild(productCell);
 
+                let productTotal = 0; // Suma dla każdego produktu
+
                 users.forEach(user => {
                     const cell = document.createElement('td');
-                    cell.textContent = summary[user][product] || 0;
+                    const quantity = summary[user][product] || 0;
+                    cell.textContent = quantity;
                     row.appendChild(cell);
+
+                    productTotal += quantity; // Dodanie do sumy produktu
+                    totalUserOrders += quantity; // Dodanie do całkowitej sumy użytkownika
                 });
+
+                // Dodanie sumy dla produktu
+                const totalCell = document.createElement('td');
+                totalCell.textContent = productTotal;
+                row.appendChild(totalCell);
 
                 table.appendChild(row);
             });
+
+            // Dodanie podsumowania w stopce
+            const footerRow = document.createElement('tr');
+            const footerCell = document.createElement('td');
+            footerCell.setAttribute('colspan', users.length + 1); // Kolumny użytkowników + kolumna Produkt
+            footerCell.textContent = "Razem zamówione przez użytkowników:";
+            footerRow.appendChild(footerCell);
+
+            // Komórka z łączną liczbą zamówionych produktów
+            const totalUserCell = document.createElement('td');
+            totalUserCell.textContent = totalUserOrders;
+            footerRow.appendChild(totalUserCell);
+
+            table.appendChild(footerRow);
         });
     </script>
 </body>
