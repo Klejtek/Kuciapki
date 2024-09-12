@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Podsumowanie Zamówień</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Ukrycie przycisku "Wyczyść" */
+        #clear-table {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -22,7 +28,7 @@
         <section id="summary">
             <h2>Podsumowanie Zamówień</h2>
             
-            <!-- Przycisk Wyczyść -->
+            <!-- Przycisk Wyczyść (teraz ukryty) -->
             <button id="clear-table">Wyczyść</button>
             
             <!-- Główna tabela z danymi zamówień -->
@@ -94,6 +100,12 @@
                 });
 
                 const productTotals = {}; // Obiekt do sumowania ilości produktów
+                const userTotals = {}; // Obiekt do sumowania ilości produktów dla użytkowników
+
+                // Inicjalizacja licznika dla każdego użytkownika
+                users.forEach(user => {
+                    userTotals[user] = 0;
+                });
 
                 // Dodanie wierszy produktów w głównej tabeli
                 productNames.forEach(product => {
@@ -117,6 +129,9 @@
                             productTotals[product] = 0;
                         }
                         productTotals[product] += quantity;
+
+                        // Sumowanie dla użytkownika
+                        userTotals[user] += quantity;
                     });
 
                     // Dodanie sumy dla produktu
@@ -126,6 +141,24 @@
 
                     table.appendChild(row);
                 });
+
+                // Tworzenie wiersza dla sumy zamówionych produktów przez użytkowników
+                const footerRow = document.createElement('tr');
+                const footerCell = document.createElement('td');
+                footerCell.innerHTML = '<strong>Razem zamówione przez użytkowników:</strong>';
+                footerRow.appendChild(footerCell);
+
+                users.forEach(user => {
+                    const totalUserCell = document.createElement('td');
+                    totalUserCell.textContent = userTotals[user];
+                    footerRow.appendChild(totalUserCell);
+                });
+
+                // Dodanie pustej komórki na końcu, aby wyrównać z kolumną sumy
+                const emptyCell = document.createElement('td');
+                footerRow.appendChild(emptyCell);
+
+                table.appendChild(footerRow);
 
                 // Tworzenie wierszy dla tabeli "Suma zamówionych produktów"
                 Object.keys(productTotals).forEach(product => {
@@ -145,17 +178,6 @@
 
             // Pierwsze załadowanie danych
             await loadSummary();
-
-            // Funkcja czyszczenia tabeli i wysłania żądania do serwera
-            document.getElementById('clear-table').addEventListener('click', async () => {
-                // Wysłanie żądania do serwera w celu usunięcia danych
-                await fetch('https://kuciapki.onrender.com/api/clear-summary', {
-                    method: 'DELETE'
-                });
-
-                // Po usunięciu danych, ponownie załaduj pustą tabelę
-                await loadSummary();
-            });
         });
     </script>
 </body>
