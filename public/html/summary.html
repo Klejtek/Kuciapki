@@ -21,6 +21,10 @@
     <main>
         <section id="summary">
             <h2>Podsumowanie Zamówień</h2>
+            
+            <!-- Dodanie przycisku "Wyczyść" -->
+            <button id="clear-table">Wyczyść</button>
+            
             <table id="summary-table" border="1">
                 <!-- Tabela zostanie wypełniona dynamicznie -->
             </table>
@@ -119,6 +123,16 @@
             footerRow.appendChild(emptyCell);
 
             table.appendChild(footerRow);
+
+            // Funkcja czyszczenia tabeli
+            document.getElementById('clear-table').addEventListener('click', () => {
+                const rows = table.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    if (index > 0) { // Zachowanie nagłówka (pierwszy wiersz)
+                        row.remove();
+                    }
+                });
+            });
         });
     </script>
 </body>
