@@ -112,8 +112,6 @@ footer {
     background-color: #555;
 }
 
-/* Nowe style */
-
 /* Pływające powiadomienie */
 #floating-notification {
     position: fixed;
@@ -146,4 +144,87 @@ footer {
     font-weight: bold;
     cursor: pointer;
     z-index: 1001;
+}
+
+/* --- DODANE FUNKCJE RESPONSYWNOŚCI --- */
+
+/* Styl dla ekranów do 768px szerokości (mobilnych) */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    nav ul {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem; /* Mniejsze odstępy między linkami w menu */
+    }
+
+    nav ul li {
+        margin-bottom: 10px;
+    }
+
+    main {
+        padding: 1rem;
+        padding-top: 80px;
+        padding-bottom: 100px;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 kolumny na małych ekranach */
+    }
+
+    .product {
+        padding: 0.5rem;
+    }
+
+    .product h3 {
+        font-size: 0.9rem;
+    }
+
+    .product button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    footer {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    /* Style dla przycisków i formularzy */
+    button {
+        width: 100%; /* Przyciski pełnej szerokości */
+        margin: 5px 0;
+    }
+
+    #cart-widget {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px 15px;
+    }
+}
+
+/* Styl dla ekranów do 480px szerokości (małe smartfony) */
+@media (max-width: 480px) {
+    .product-grid {
+        grid-template-columns: 1fr; /* 1 kolumna na małych ekranach */
+    }
+
+    .product h3 {
+        font-size: 0.8rem;
+    }
+
+    .product button {
+        font-size: 0.8rem;
+    }
+
+    footer {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    nav ul {
+        font-size: 0.9rem;
+    }
 }
