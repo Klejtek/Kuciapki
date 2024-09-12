@@ -235,9 +235,9 @@ footer {
 
 /* --- Zmiany dla sekcji zamówień --- */
 
-/* Dodanie przestrzeni dla sekcji zamówień */
+/* Dodanie mniejszej przestrzeni dla sekcji zamówień */
 #orders, #completed-orders, #paid-orders {
-    padding-top: 140px; /* Więcej miejsca nad sekcją na komputerze */
+    padding-top: 100px; /* Zmniejszony odstęp od nagłówka */
     margin-bottom: 40px; /* Dodanie marginesu na dole */
 }
 
@@ -254,7 +254,7 @@ footer {
 /* Dla mniejszych ekranów */
 @media (max-width: 768px) {
     #orders, #completed-orders, #paid-orders {
-        padding-top: 180px; /* Większy odstęp od nagłówka na małych ekranach */
+        padding-top: 140px; /* Zmniejszony odstęp od nagłówka na małych ekranach */
         margin-bottom: 60px; /* Więcej miejsca na dole */
     }
 
@@ -266,6 +266,6 @@ footer {
 /* Dla bardzo małych ekranów */
 @media (max-width: 480px) {
     #orders, #completed-orders, #paid-orders {
-        padding-top: 200px; /* Jeszcze większy odstęp dla bardzo małych ekranów */
+        padding-top: 160px; /* Jeszcze większy odstęp dla bardzo małych ekranów */
     }
 }
