@@ -22,11 +22,26 @@
         <section id="summary">
             <h2>Podsumowanie Zamówień</h2>
             
-            <!-- Dodanie przycisku "Wyczyść" -->
+            <!-- Przycisk Wyczyść -->
             <button id="clear-table">Wyczyść</button>
             
+            <!-- Główna tabela z danymi zamówień -->
             <table id="summary-table" border="1">
                 <!-- Tabela zostanie wypełniona dynamicznie -->
+            </table>
+
+            <!-- Nowa tabela z sumą zamówionych produktów -->
+            <h3>Suma zamówionych produktów</h3>
+            <table id="product-summary-table" border="1">
+                <thead>
+                    <tr>
+                        <th>Produkt</th>
+                        <th>Łączna liczba zamówionych sztuk</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Zawartość tabeli zostanie dodana dynamicznie -->
+                </tbody>
             </table>
         </section>
     </main>
@@ -38,6 +53,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const table = document.getElementById('summary-table');
+            const productSummaryTable = document.getElementById('product-summary-table').querySelector('tbody');
 
             // Funkcja pobierania danych z serwera i wyświetlania tabeli
             async function loadSummary() {
@@ -46,12 +62,13 @@
 
                 // Czyszczenie istniejącej zawartości tabeli
                 table.innerHTML = '';
+                productSummaryTable.innerHTML = ''; // Czyszczenie drugiej tabeli
 
-                // Tworzenie nagłówka tabeli
+                // Tworzenie nagłówka głównej tabeli
                 const headerRow = document.createElement('tr');
                 headerRow.innerHTML = '<th>Produkt</th>';
-                
-                // Pobranie listy użytkowników z obiektów (kolumny)
+
+                // Pobranie listy użytkowników
                 const users = Object.keys(summary);
                 users.forEach(user => {
                     const th = document.createElement('th');
@@ -76,14 +93,9 @@
                     });
                 });
 
-                const userTotals = {}; // Obiekt, który przechowa sumy zamówień dla użytkowników
+                const productTotals = {}; // Obiekt do sumowania ilości produktów
 
-                // Inicjalizacja licznika dla każdego użytkownika
-                users.forEach(user => {
-                    userTotals[user] = 0;
-                });
-
-                // Dodanie wierszy produktów
+                // Dodanie wierszy produktów w głównej tabeli
                 productNames.forEach(product => {
                     const row = document.createElement('tr');
                     const productCell = document.createElement('td');
@@ -99,7 +111,12 @@
                         row.appendChild(cell);
 
                         productTotal += quantity; // Dodanie do sumy produktu
-                        userTotals[user] += quantity; // Dodanie do sumy dla użytkownika
+
+                        // Sumowanie dla nowej tabeli
+                        if (!productTotals[product]) {
+                            productTotals[product] = 0;
+                        }
+                        productTotals[product] += quantity;
                     });
 
                     // Dodanie sumy dla produktu
@@ -110,24 +127,20 @@
                     table.appendChild(row);
                 });
 
-                // Dodanie podsumowania w stopce - łączna liczba zamówionych produktów przez użytkowników
-                const footerRow = document.createElement('tr');
-                const footerCell = document.createElement('td');
-                footerCell.innerHTML = '<strong>Razem zamówione przez użytkowników:</strong>';
-                footerRow.appendChild(footerCell);
+                // Tworzenie wierszy dla tabeli "Suma zamówionych produktów"
+                Object.keys(productTotals).forEach(product => {
+                    const row = document.createElement('tr');
+                    const productCell = document.createElement('td');
+                    const totalCell = document.createElement('td');
 
-                // Dodanie sum dla każdego użytkownika w stopce
-                users.forEach(user => {
-                    const totalUserCell = document.createElement('td');
-                    totalUserCell.textContent = userTotals[user];
-                    footerRow.appendChild(totalUserCell);
+                    productCell.textContent = product;
+                    totalCell.textContent = productTotals[product];
+
+                    row.appendChild(productCell);
+                    row.appendChild(totalCell);
+
+                    productSummaryTable.appendChild(row);
                 });
-
-                // Dodanie pustej komórki na końcu, aby wyrównać z kolumną sumy
-                const emptyCell = document.createElement('td');
-                footerRow.appendChild(emptyCell);
-
-                table.appendChild(footerRow);
             }
 
             // Pierwsze załadowanie danych
