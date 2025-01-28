@@ -1,146 +1,191 @@
-// Funkcja dodająca produkt do koszyka
-function addToCart(productName) {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby dodać coś do koszyka.');
-        return;
-    }
+//--------------------------------------------------------
+// script.js
+//--------------------------------------------------------
 
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-
-    const existingProduct = cart.find(item => item.name === productName);
-
-    if (existingProduct) {
-        existingProduct.quantity += 1;
-    } else {
-        cart.push({ name: productName, quantity: 1 });
-    }
-
-    localStorage.setItem(cartKey, JSON.stringify(cart));
-
-    updateCartCount();
-    updateCartWidgetCount();
-    displayCart();
-    showNotification();
+// Sprawdzamy, czy użytkownik jest zalogowany (localStorage -> userId)
+function getLoggedUserId() {
+    return localStorage.getItem('userId');
 }
 
-// Funkcja aktualizująca licznik koszyka
-function updateCartCount() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        const cartCountElement = document.getElementById('cart-count');
-        if (cartCountElement) {
-            cartCountElement.textContent = 0;
+// ---------------- Logowanie ----------------
+async function login(username, password) {
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.message || 'Błąd logowania');
+            return;
         }
-        return;
-    }
-
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-    const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    const cartCountElement = document.getElementById('cart-count');
-    if (cartCountElement) {
-        cartCountElement.textContent = cartCount;
+        const data = await res.json();
+        localStorage.setItem('userId', data.userId);   // zapamiętujemy identyfikator użytkownika
+        localStorage.setItem('username', data.username);
+        alert('Zalogowano!');
+        // Przekierowanie albo odświeżenie strony
+        window.location.href = '/index.html';
+    } catch (error) {
+        console.error('Błąd logowania:', error);
     }
 }
 
-// Funkcja wyświetlająca zawartość koszyka
-function displayCart() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby zobaczyć swój koszyk.');
+// ---------------- Wylogowanie ----------------
+function logout() {
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    alert('Wylogowano!');
+    window.location.href = '/login.html';
+}
+
+// ---------------- Pobranie listy produktów ----------------
+async function loadProducts() {
+    try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        // Wyświetlamy je np. w <div id="products">
+        const productsDiv = document.getElementById('products');
+        if (!productsDiv) return;
+
+        productsDiv.innerHTML = '';
+        products.forEach(prod => {
+            // Każdy produkt: nazwa, ilość w magazynie, przycisk "Dodaj do koszyka"
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <h3>${prod.name}</h3>
+                <p>Ilość w magazynie: ${prod.quantity}</p>
+                <button onclick="addToCart('${prod._id}')">Dodaj do koszyka</button>
+            `;
+            productsDiv.appendChild(div);
+        });
+    } catch (error) {
+        console.error('Błąd przy wczytywaniu produktów:', error);
+    }
+}
+
+// ---------------- Dodawanie do koszyka ----------------
+async function addToCart(productId) {
+    const userId = getLoggedUserId();
+    if (!userId) {
+        alert('Musisz być zalogowany, aby dodać do koszyka.');
         return;
     }
 
-    const cartKey = `cart_${currentUser}`;
-    const cartItems = document.getElementById('cart-items');
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+    // Możemy ustawić "na sztywno" quantity = 1 lub pobierać z inputa
+    const quantity = 1;
 
-    if (cartItems) {
-        cartItems.innerHTML = '';
-
-        if (cart.length === 0) {
-            cartItems.innerHTML = '<li>Twój koszyk jest pusty.</li>';
-        } else {
-            cart.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.name} x ${item.quantity}`;
-                cartItems.appendChild(li);
-            });
+    try {
+        const res = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, productId, quantity })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.message || 'Błąd podczas dodawania do koszyka');
+            return;
         }
+        alert('Dodano do koszyka!');
+        updateCartCount(); // odśwież widoczny licznik koszyka, jeśli masz
+    } catch (error) {
+        console.error('Błąd podczas dodawania do koszyka:', error);
     }
 }
 
-// Funkcja wysyłająca zamówienie
-function sendOrder() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby wysłać zamówienie.');
+// ---------------- Wyświetlanie koszyka ----------------
+async function displayCart() {
+    const userId = getLoggedUserId();
+    if (!userId) {
+        alert('Musisz być zalogowany, aby zobaczyć koszyk!');
         return;
     }
 
-    const cartKey = `cart_${currentUser}`;
-    const cartItems = JSON.parse(localStorage.getItem(cartKey)) || [];
-    if (cartItems.length === 0) {
-        alert('Koszyk jest pusty!');
+    try {
+        const res = await fetch(`/api/cart/${userId}`);
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.message || 'Błąd przy pobieraniu koszyka');
+            return;
+        }
+        const cartItems = await res.json();
+
+        const cartList = document.getElementById('cart-items');
+        if (!cartList) return;
+        cartList.innerHTML = '';
+
+        if (cartItems.length === 0) {
+            cartList.innerHTML = '<li>Koszyk jest pusty</li>';
+            return;
+        }
+
+        cartItems.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = `${item.productId.name} (x${item.quantity})`;
+            cartList.appendChild(li);
+        });
+    } catch (error) {
+        console.error('Błąd przy wyświetlaniu koszyka:', error);
+    }
+}
+
+// ---------------- Składanie zamówienia ----------------
+async function sendOrder() {
+    const userId = getLoggedUserId();
+    if (!userId) {
+        alert('Musisz być zalogowany, aby złożyć zamówienie.');
         return;
     }
 
-    const ordersKey = 'orders';
-    const orders = JSON.parse(localStorage.getItem(ordersKey)) || [];
+    try {
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        const data = await res.json();
 
-    // Dodajemy zamówienie wraz z nazwą użytkownika
-    const order = {
-        user: currentUser,
-        items: cartItems
-    };
-    
-    orders.push(order);
-
-    localStorage.setItem(ordersKey, JSON.stringify(orders));
-
-    localStorage.removeItem(cartKey);
-
-    updateCartCount();
-    updateCartWidgetCount();
-    alert('Zamówienie zostało złożone.');
-    displayCart();
-}
-
-// Funkcja do wyświetlania powiadomienia
-function showNotification() {
-    const notification = document.getElementById('floating-notification');
-    if (notification) {
-        notification.classList.add('show');
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+        if (!res.ok) {
+            // np. brak towaru w magazynie
+            alert(data.message || 'Błąd przy składaniu zamówienia');
+            return;
+        }
+        alert('Zamówienie zostało złożone!');
+        displayCart(); // odśwież koszyk (teraz powinien być pusty)
+    } catch (error) {
+        console.error('Błąd przy składaniu zamówienia:', error);
     }
 }
 
-// Funkcja aktualizująca licznik w stałym widgetcie
-function updateCartWidgetCount() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) return;
+// ---------------- (Opcjonalnie) Licznik produktów w koszyku ----------------
+async function updateCartCount() {
+    const userId = getLoggedUserId();
+    if (!userId) {
+        document.getElementById('cart-count').textContent = '0';
+        return;
+    }
 
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-    const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    const cartWidgetCount = document.getElementById('cart-widget-count');
-    if (cartWidgetCount) {
-        cartWidgetCount.textContent = cartCount;
+    try {
+        const res = await fetch(`/api/cart/${userId}`);
+        if (!res.ok) return;
+        const cartItems = await res.json();
+        const total = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+        document.getElementById('cart-count').textContent = total;
+    } catch (error) {
+        console.error('Błąd przy updateCartCount:', error);
     }
 }
 
-// Inicjalizacja koszyka na stronie
+// Wywołania początkowe po załadowaniu strony, np.:
 document.addEventListener('DOMContentLoaded', () => {
-    updateCartCount();
-    
-    // Sprawdzenie, czy widget koszyka istnieje przed aktualizacją
-    if (document.getElementById('cart-widget-count')) {
-        updateCartWidgetCount();
+    // Jeśli to index.html, możesz wczytać listę produktów
+    if (document.getElementById('products')) {
+        loadProducts();
     }
-
-    displayCart();
+    // Jeśli to cart.html, możesz wczytać koszyk
+    if (document.getElementById('cart-items')) {
+        displayCart();
+    }
+    // itp.
+    updateCartCount();
 });
