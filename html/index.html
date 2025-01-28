@@ -40,15 +40,18 @@
             const loggedInUser = localStorage.getItem('loggedInUser');
             const logoutButton = document.getElementById('logout-button');
 
+            // Sprawdzenie czy użytkownik jest zalogowany
             if (!loggedInUser) {
                 window.location.href = 'login.html';
                 return;
             }
 
+            // Wyświetlenie nazwy zalogowanego użytkownika
             if (loggedInUser) {
                 userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
             }
 
+            // Obsługa wylogowania
             logoutButton.addEventListener('click', function(event) {
                 event.preventDefault();
                 localStorage.removeItem('userId');
@@ -58,8 +61,7 @@
 
             // Pobranie listy produktów
             try {
-                // Zmień na 'http://localhost:5000/api/products' jeżeli testujesz lokalnie
-                const response = await fetch('https://kuciapki.onrender.com/api/products');
+                const response = await fetch('/api/products'); // Zmień na lokalny adres przy testach
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
@@ -69,7 +71,7 @@
                     if (product.available) {
                         const productItem = document.createElement('div');
                         productItem.className = 'product-item';
-                        productItem.setAttribute('data-id', product._id); // kluczowe
+                        productItem.setAttribute('data-id', product._id); // kluczowe dla identyfikacji
 
                         productItem.innerHTML = `
                             <h3>${product.name}</h3>
@@ -85,13 +87,14 @@
 
                 updateCartWidgetCount();
             } catch (error) {
-                console.error('Error fetching products:', error);
+                console.error('Błąd przy pobieraniu produktów:', error);
             }
         });
 
+        // Funkcja dodająca produkt do koszyka
         async function addToCart(productId) {
             const userId = localStorage.getItem('userId');
-            const quantity = 1;
+            const quantity = 1; // Domyślnie dodajemy 1 sztukę
 
             if (!userId || !productId) {
                 alert('Brak ID użytkownika lub produktu');
@@ -99,7 +102,7 @@
             }
 
             try {
-                const response = await fetch('https://kuciapki.onrender.com/api/cart', {
+                const response = await fetch('/api/cart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, productId, quantity })
@@ -109,72 +112,64 @@
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
-                // Otrzymujemy { cartItem, updatedProduct }
-                const { cartItem, updatedProduct } = await response.json();
-                console.log('Dodano do koszyka:', cartItem);
-                console.log('updatedProduct:', updatedProduct);
+                const { updatedProduct } = await response.json();
+                console.log('Zaktualizowany produkt:', updatedProduct);
 
                 updateCartWidgetCount();
                 showNotification('Produkt dodany do koszyka!');
-
-                // Zaktualizuj DOM
                 updateProductDOM(updatedProduct);
-
             } catch (error) {
-                console.error('Error adding product to cart:', error);
+                console.error('Błąd przy dodawaniu do koszyka:', error);
                 alert('Wystąpił problem przy dodawaniu produktu do koszyka.');
             }
         }
 
+        // Funkcja aktualizująca widok koszyka
         function updateCartWidgetCount() {
             const userId = localStorage.getItem('userId');
             if (!userId) return;
 
-            fetch(`https://kuciapki.onrender.com/api/cart/${userId}`)
+            fetch(`/api/cart/${userId}`)
                 .then(response => response.json())
                 .then(cartItems => {
                     const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
                     document.getElementById('cart-count').textContent = cartCount;
                 })
-                .catch(error => console.error('Error fetching cart count:', error));
+                .catch(error => console.error('Błąd przy aktualizacji koszyka:', error));
         }
 
-        function showNotification(message) {
-            const notification = document.getElementById('floating-notification');
-            notification.textContent = message;
-            notification.classList.add('show');
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        // Funkcja która zmienia liczbę w ".product-quantity" i blokuje przycisk
+        // Funkcja do aktualizacji DOM produktu
         function updateProductDOM(updatedProduct) {
-            console.log('updateProductDOM -> updatedProduct:', updatedProduct);
-
-            // Znajdź div o data-id=...
             const productElem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
             if (!productElem) {
-                console.log('Nie znaleziono w DOM produktu o id:', updatedProduct._id);
+                console.log('Nie znaleziono produktu w DOM:', updatedProduct._id);
                 return;
             }
 
-            // Zmień tekst w .product-quantity
             const quantityElem = productElem.querySelector('.product-quantity');
             if (quantityElem) {
                 quantityElem.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
             }
 
-            // Jeśli ilość = 0 -> zablokuj przycisk lub usuń
             if (updatedProduct.quantity <= 0) {
                 const btn = productElem.querySelector('.add-to-cart-btn');
                 if (btn) {
                     btn.disabled = true;
                     btn.textContent = 'Niedostępne';
                 }
-                // productElem.remove(); // ewentualnie usunięcie
+                // Ewentualne usunięcie produktu z DOM
+                // productElem.remove();
             }
+        }
+
+        // Powiadomienie
+        function showNotification(message) {
+            const notification = document.getElementById('floating-notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
     </script>
 </body>
