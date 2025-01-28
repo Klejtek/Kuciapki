@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Zarządzanie Produktami</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css" />
     <style>
         /* Dodajemy styl dla sekcji produktów, aby miała odpowiednią wysokość i przewijała się, jeśli jest za długa */
         #product-management {
@@ -13,10 +13,50 @@
             padding-bottom: 20px;
         }
 
-        /* Upewniamy się, że stopka nie zasłania treści */
         footer {
             position: relative;
             margin-top: 20px;
+        }
+
+        /* Dodatkowe stylowanie listy produktów */
+        #product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #product-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        #product-list label {
+            margin-left: 0.5rem;
+            margin-right: 1rem;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.2);
+            margin-right: 0.5rem;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            margin-right: 1rem;
+        }
+
+        /* Styl przycisku "Zapisz zmiany" */
+        .save-button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 0.3rem 1rem;
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+        .save-button:hover {
+            background-color: #555;
         }
     </style>
 </head>
@@ -33,7 +73,7 @@
 
     <main>
         <section id="product-management">
-            <h2>Zarządzanie Dostępnością Produktów</h2>
+            <h2>Zarządzanie Dostępnością i Ilością Produktów</h2>
             <ul id="product-list">
                 <!-- Produkty będą ładowane dynamicznie -->
             </ul>
@@ -45,40 +85,91 @@
     </footer>
 
     <script>
+        // Adres API - dostosuj do swojego (musi się pokrywać z adresem w server.js).
+        const API_BASE = 'https://kuciapki.onrender.com/api/products';
+
         document.addEventListener('DOMContentLoaded', async () => {
             const productList = document.getElementById('product-list');
 
             try {
-                const response = await fetch('https://kuciapki.onrender.com/api/products');
+                // 1. Pobranie listy produktów z serwera
+                const response = await fetch(API_BASE);
+                if (!response.ok) {
+                    throw new Error(`Błąd przy pobieraniu produktów. Kod: ${response.status}`);
+                }
+
                 const products = await response.json();
 
+                // 2. Generujemy elementy listy <li>
                 products.forEach(product => {
                     const li = document.createElement('li');
+
+                    // CHECKBOX do ustalania "available"
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
-                    checkbox.id = `product_${product._id}`;
                     checkbox.checked = product.available;
 
-                    checkbox.addEventListener('change', async () => {
-                        await fetch(`https://kuciapki.onrender.com/api/products/${product._id}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ available: checkbox.checked })
-                        });
-                    });
-
+                    // LABEL z nazwą produktu
                     const label = document.createElement('label');
-                    label.setAttribute('for', `product_${product._id}`);
                     label.textContent = product.name;
 
+                    // INPUT number do ustalania "quantity"
+                    const quantityInput = document.createElement('input');
+                    quantityInput.type = 'number';
+                    quantityInput.value = product.quantity ?? 0;
+                    quantityInput.min = 0;
+
+                    // Przycisk "Zapisz zmiany"
+                    const saveButton = document.createElement('button');
+                    saveButton.textContent = 'Zapisz zmiany';
+                    saveButton.className = 'save-button';
+
+                    // 3. Funkcja aktualizująca produkt w bazie
+                    async function updateProduct() {
+                        const newAvailable = checkbox.checked;
+                        const newQuantity = parseInt(quantityInput.value) || 0;
+
+                        try {
+                            const res = await fetch(`${API_BASE}/${product._id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    available: newAvailable,
+                                    quantity: newQuantity
+                                })
+                            });
+
+                            if (!res.ok) {
+                                console.error('Nie udało się zaktualizować produktu. Status:', res.status);
+                                return;
+                            }
+
+                            const updated = await res.json();
+                            console.log('Zaktualizowano produkt:', updated);
+
+                            alert(`Zaktualizowano produkt: ${updated.name}\nIlość: ${updated.quantity}\nDostępny: ${updated.available}`);
+                        } catch (err) {
+                            console.error('Błąd przy aktualizacji produktu:', err);
+                            alert('Wystąpił błąd przy aktualizacji produktu.');
+                        }
+                    }
+
+                    // 4. Po kliknięciu przycisku "Zapisz zmiany" wywołaj updateProduct()
+                    saveButton.addEventListener('click', updateProduct);
+
+                    // 5. Dokładamy do <li> elementy
                     li.appendChild(checkbox);
                     li.appendChild(label);
+                    li.appendChild(quantityInput);
+                    li.appendChild(saveButton);
+
                     productList.appendChild(li);
                 });
             } catch (error) {
                 console.error('Error fetching products:', error);
+                alert('Nie udało się pobrać listy produktów.');
             }
         });
     </script>

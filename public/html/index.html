@@ -1,5 +1,3 @@
-# Let's modify the index.html file to remove the quantity input
-updated_html_content = """
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -42,15 +40,18 @@ updated_html_content = """
             const loggedInUser = localStorage.getItem('loggedInUser');
             const logoutButton = document.getElementById('logout-button');
 
+            // Sprawdzenie, czy użytkownik jest zalogowany
             if (!loggedInUser) {
                 window.location.href = 'login.html';
                 return;
             }
 
+            // Wyświetlenie nazwy zalogowanego użytkownika
             if (loggedInUser) {
                 userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
             }
 
+            // Obsługa wylogowania
             logoutButton.addEventListener('click', function(event) {
                 event.preventDefault();
                 localStorage.removeItem('userId');
@@ -58,6 +59,7 @@ updated_html_content = """
                 window.location.href = 'login.html';
             });
 
+            // Pobranie listy produktów
             try {
                 const response = await fetch('https://kuciapki.onrender.com/api/products');
                 if (!response.ok) {
@@ -65,12 +67,17 @@ updated_html_content = """
                 }
                 const products = await response.json();
 
+                // Wypełnienie sekcji z produktami
                 products.forEach(product => {
+                    // Sprawdzamy, czy produkt jest dostępny (available)
                     if (product.available) {
                         const productItem = document.createElement('div');
                         productItem.className = 'product-item';
+
+                        // Dodajemy informację o ilości dostępnej (product.quantity)
                         productItem.innerHTML = `
                             <h3>${product.name}</h3>
+                            <p>Ilość dostępna: ${product.quantity}</p>
                             <img src="/images/${product.image}.webp" alt="${product.name}">
                             <button onclick="addToCart('${product._id}')">Dodaj do koszyka</button>
                         `;
@@ -78,6 +85,7 @@ updated_html_content = """
                     }
                 });
 
+                // Aktualizacja licznika koszyka
                 updateCartWidgetCount();
 
             } catch (error) {
@@ -85,9 +93,10 @@ updated_html_content = """
             }
         });
 
+        // Funkcja dodająca produkt do koszyka
         async function addToCart(productId) {
             const userId = localStorage.getItem('userId');
-            const quantity = 1;
+            const quantity = 1;  // Dodajemy "na sztywno" jedną sztukę
 
             if (!userId || !productId) {
                 alert('Brak ID użytkownika lub produktu');
@@ -115,13 +124,13 @@ updated_html_content = """
 
                 // Wyświetlanie powiadomienia
                 showNotification('Produkt dodany do koszyka!');
-
             } catch (error) {
                 console.error('Error adding product to cart:', error);
                 alert('Wystąpił problem przy dodawaniu produktu do koszyka.');
             }
         }
 
+        // Funkcja aktualizująca licznik koszyka
         function updateCartWidgetCount() {
             const userId = localStorage.getItem('userId');
             if (!userId) return;
@@ -135,6 +144,7 @@ updated_html_content = """
                 .catch(error => console.error('Error fetching cart count:', error));
         }
 
+        // Funkcja wyświetlająca powiadomienie
         function showNotification(message) {
             const notification = document.getElementById('floating-notification');
             notification.textContent = message;
@@ -147,11 +157,3 @@ updated_html_content = """
     </script>
 </body>
 </html>
-"""
-
-# Save the updated content back to the file
-output_file_path = '/mnt/data/updated_index.html'
-with open(output_file_path, 'w', encoding='utf-8') as updated_file:
-    updated_file.write(updated_html_content)
-
-output_file_path
