@@ -37,10 +37,7 @@ const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
     available: { type: Boolean, default: true },
     quantity: { type: Number, default: 0 },
-    // Ewentualnie inne pola:
-    // price: { type: Number, default: 0 },
-    // description: { type: String, default: '' },
-    // image: { type: String, default: '' }
+    // Możesz dodać pola, np.: price, description, image
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -101,8 +98,7 @@ app.post('/api/products', async (req, res) => {
 
 // Admin może zmienić "available" i "quantity" produktu
 app.put('/api/products/:id', async (req, res) => {
-    // LOGUJEMY TUTAJ CO PRZYCHODZI W CIELE:
-    console.log('REQUEST BODY:', req.body);
+    console.log('REQUEST BODY:', req.body); // Logowanie request body (dla debugowania)
 
     const { id } = req.params;
     const { available, quantity } = req.body;
@@ -111,7 +107,7 @@ app.put('/api/products/:id', async (req, res) => {
         const updatedProduct = await Product.findByIdAndUpdate(
             id,
             { available, quantity },
-            { new: true }  // zwróci nam zaktualizowany dokument
+            { new: true }  // zwraca zaktualizowany dokument
         );
         res.status(200).json(updatedProduct);
     } catch (error) {
@@ -130,9 +126,35 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // ------ Koszyk ------
+/*
+    Zmieniony endpoint POST /api/cart:
+    - od razu sprawdzamy product.quantity
+    - jeśli wystarczy, odejmujemy (rezerwacja)
+    - potem zapisujemy do kolekcji Cart
+    - zwracamy cartItem + updatedProduct
+*/
 app.post('/api/cart', async (req, res) => {
     const { userId, productId, quantity } = req.body;
+
     try {
+        // 1. Znajdź produkt
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Nie znaleziono produktu' });
+        }
+
+        // 2. Sprawdź stan magazynu
+        if (product.quantity < quantity) {
+            return res.status(400).json({
+                message: `Brak wystarczającej ilości produktu: ${product.name}`
+            });
+        }
+
+        // 3. Odejmuje z magazynu
+        product.quantity -= quantity;
+        await product.save();
+
+        // 4. Dodaj/aktualizuj item w koszyku
         let cartItem = await Cart.findOne({ userId, productId });
         if (cartItem) {
             cartItem.quantity += quantity;
@@ -140,8 +162,15 @@ app.post('/api/cart', async (req, res) => {
             cartItem = new Cart({ userId, productId, quantity });
         }
         await cartItem.save();
-        res.status(200).json(cartItem);
+
+        // 5. Zwrotnie wyślij np. { cartItem, updatedProduct }
+        res.status(200).json({
+            cartItem,
+            updatedProduct: product
+        });
+
     } catch (error) {
+        console.error('Błąd w POST /api/cart:', error);
         res.status(500).json({ message: 'Error adding product to cart', error });
     }
 });
