@@ -144,3 +144,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
     displayCart();
 });
+
+// Nowa funkcja obsługująca dodawanie produktu z ilością do koszyka
+async function addToCart(productId) {
+    const userId = localStorage.getItem('userId');
+    const quantity = document.getElementById(`quantity-${productId}`).value; // Pobieramy ilość
+
+    if (!userId || !productId || !quantity) {
+        alert('Brak ID użytkownika, produktu lub ilości');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: userId,
+                productId: productId,
+                quantity: parseInt(quantity) // Wysyłamy ilość jako liczba
+            })
+        });
+
+        const data = await response.json();
+        console.log('Dodano do koszyka:', data);
+        updateCart(); // Aktualizacja koszyka po dodaniu produktu
+    } catch (error) {
+        console.error('Błąd przy dodawaniu do koszyka:', error);
+    }
+}
+
+// Funkcja aktualizująca koszyk i wyświetlająca ilości
+function updateCart() {
+    const userId = localStorage.getItem('userId');
+
+    fetch(`/api/cart/${userId}`)
+    .then(response => response.json())
+    .then(cartItems => {
+        const cartList = document.getElementById('cart-items');
+        cartList.innerHTML = ''; // Wyczyść aktualny widok koszyka
+
+        let totalQuantity = 0;
+        cartItems.forEach(item => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `${item.productId.name} - Ilość: ${item.quantity}`;
+            cartList.appendChild(listItem);
+
+            totalQuantity += item.quantity; // Sumowanie ilości produktów
+        });
+
+        // Aktualizacja liczby produktów w koszyku
+        document.getElementById('cart-count').textContent = totalQuantity;
+    })
+    .catch(error => {
+        console.error('Błąd przy pobieraniu koszyka:', error);
+    });
+}
