@@ -22,11 +22,12 @@ app.use(express.json());
 // Ustawienie katalogu na pliki statyczne (CSS, JS, images)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Middleware do ustawienia Content-Type dla plików CSS
+// Middleware do ustawienia Content-Type dla plików CSS (opcjonalne)
 app.get('*.css', (req, res, next) => {
     res.set('Content-Type', 'text/css');
     next();
 });
+
 
 //--------------------------------------------------------
 // MODELE MONGOOSE
@@ -37,7 +38,6 @@ const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
     available: { type: Boolean, default: true },
     quantity: { type: Number, default: 0 },
-    // Możesz dodać pola, np.: price, description, image
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -97,16 +97,16 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
-// Admin może zmienić "available" i "quantity" produktu
+// Admin – aktualizacja pola available i quantity
 app.put('/api/products/:id', async (req, res) => {
-    console.log('REQUEST BODY:', req.body); // Logowanie request body (dla debugowania)
+    console.log('REQUEST BODY:', req.body);
     const { id } = req.params;
     const { available, quantity } = req.body;
     try {
         const updatedProduct = await Product.findByIdAndUpdate(
             id,
             { available, quantity },
-            { new: true }  // zwraca zaktualizowany dokument
+            { new: true }
         );
         res.status(200).json(updatedProduct);
     } catch (error) {
@@ -127,11 +127,11 @@ app.delete('/api/products/:id', async (req, res) => {
 // ------ Koszyk ------
 
 /*
-    Zmieniony endpoint POST /api/cart:
-    - od razu sprawdzamy product.quantity,
-    - jeśli wystarczy, odejmujemy (rezerwacja),
-    - potem zapisujemy do kolekcji Cart,
-    - zwracamy cartItem + updatedProduct
+    Endpoint POST /api/cart:
+    - Sprawdza, czy produkt istnieje i czy jest wystarczająca ilość.
+    - Odejmujemy ilość z magazynu.
+    - Dodajemy lub aktualizujemy element w koszyku.
+    - Zwracamy obiekt { cartItem, updatedProduct }.
 */
 app.post('/api/cart', async (req, res) => {
     const { userId, productId, quantity } = req.body;
@@ -149,11 +149,11 @@ app.post('/api/cart', async (req, res) => {
             });
         }
 
-        // 3. Odejmuje z magazynu
+        // 3. Odejmij ilość z magazynu
         product.quantity -= quantity;
         await product.save();
 
-        // 4. Dodaj/aktualizuj item w koszyku
+        // 4. Dodaj lub aktualizuj element w koszyku
         let cartItem = await Cart.findOne({ userId, productId });
         if (cartItem) {
             cartItem.quantity += quantity;
@@ -162,7 +162,7 @@ app.post('/api/cart', async (req, res) => {
         }
         await cartItem.save();
 
-        // 5. Zwrotnie wyślij np. { cartItem, updatedProduct }
+        // 5. Zwróć dane
         res.status(200).json({
             cartItem,
             updatedProduct: product
@@ -177,21 +177,41 @@ app.get('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
         const cartItems = await Cart.find({ userId }).populate('productId');
-        return res.status(200).json(cartItems);
+        res.status(200).json(cartItems);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching cart', error });
     }
 });
 
-// Usuwanie 1 produktu z koszyka
+/*
+    Endpoint DELETE /api/cart/:userId/:productId:
+    - Znajduje element koszyka.
+    - Przywraca usuniętą ilość produktu do magazynu.
+    - Usuwa element z koszyka.
+    - Zwraca zaktualizowany produkt.
+*/
 app.delete('/api/cart/:userId/:productId', async (req, res) => {
     const { userId, productId } = req.params;
     try {
-        const deletedItem = await Cart.findOneAndDelete({ userId, productId });
-        if (!deletedItem) {
+        // Znajdź pozycję w koszyku
+        const cartItem = await Cart.findOne({ userId, productId });
+        if (!cartItem) {
             return res.status(404).json({ message: 'Produkt nie został znaleziony w koszyku' });
         }
-        res.status(200).json({ message: 'Produkt został usunięty z koszyka' });
+
+        // Przywróć ilość do magazynu
+        const product = await Product.findById(productId);
+        if (product) {
+            product.quantity += cartItem.quantity;
+            await product.save();
+        }
+
+        // Usuń element z koszyka
+        await Cart.findOneAndDelete({ userId, productId });
+        res.status(200).json({
+            message: 'Produkt został usunięty z koszyka',
+            updatedProduct: product
+        });
     } catch (error) {
         res.status(500).json({ message: 'Błąd podczas usuwania produktu z koszyka', error });
     }
@@ -248,7 +268,6 @@ app.post('/api/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
         }
-        // Zwracamy userId i role – front może to sobie zapisać w localStorage
         res.status(200).json({ userId: user._id, username: user.username, role: user.role });
     } catch (error) {
         res.status(500).json({ message: 'Błąd podczas logowania', error });
@@ -266,7 +285,7 @@ app.post('/api/orders', async (req, res) => {
             return res.status(400).json({ message: 'Koszyk jest pusty' });
         }
 
-        // 2. Sprawdź, czy produkty w koszyku mają wystarczającą ilość w magazynie
+        // 2. Sprawdź, czy produkty mają wystarczającą ilość
         for (const cartItem of cartItems) {
             const product = await Product.findById(cartItem.productId);
             if (!product) {
@@ -277,7 +296,7 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
-        // 3. Skoro wystarczy ilości, tworzymy zamówienie
+        // 3. Utwórz zamówienie
         const order = new Order({
             userId,
             products: cartItems.map(item => ({
@@ -287,23 +306,22 @@ app.post('/api/orders', async (req, res) => {
         });
         await order.save();
 
-        // 4. Zmniejszamy ilości w magazynie
+        // 4. Zmniejsz ilość produktów w magazynie
         for (const cartItem of cartItems) {
             const product = await Product.findById(cartItem.productId);
             product.quantity -= cartItem.quantity;
             await product.save();
         }
 
-        // 5. Czyścimy koszyk
+        // 5. Wyczyść koszyk
         await Cart.deleteMany({ userId });
-
         res.status(200).json({ message: 'Zamówienie zostało złożone', order });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas składania zamówienia', error });
     }
 });
 
-// Pobieranie wszystkich zamówień (tylko 'pending')
+// Pobieranie zamówień o statusie "pending"
 app.get('/api/orders', async (req, res) => {
     try {
         const orders = await Order.find({ status: 'pending' })
@@ -315,7 +333,7 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
-// Przenoszenie zamówienia do zrealizowanych (completed)
+// Przenoszenie zamówienia do "completed"
 app.post('/api/orders/:id/complete', async (req, res) => {
     const { id } = req.params;
     try {
@@ -331,7 +349,7 @@ app.post('/api/orders/:id/complete', async (req, res) => {
     }
 });
 
-// Pobieranie zrealizowanych
+// Pobieranie zamówień "completed"
 app.get('/api/orders/completed', async (req, res) => {
     try {
         const completedOrders = await Order.find({ status: 'completed' })
@@ -343,7 +361,7 @@ app.get('/api/orders/completed', async (req, res) => {
     }
 });
 
-// Przenoszenie zamówienia do opłaconych (paid)
+// Przenoszenie zamówienia do "paid"
 app.post('/api/orders/:id/pay', async (req, res) => {
     const { id } = req.params;
     try {
@@ -359,7 +377,7 @@ app.post('/api/orders/:id/pay', async (req, res) => {
     }
 });
 
-// Pobieranie opłaconych
+// Pobieranie zamówień "paid"
 app.get('/api/orders/paid', async (req, res) => {
     try {
         const paidOrders = await Order.find({ status: 'paid' })
