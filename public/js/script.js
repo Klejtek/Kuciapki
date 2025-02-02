@@ -1,5 +1,5 @@
 /*************************************************
- * 1. STARE FUNKCJE oparte na localStorage        *
+ * 1. FUNKCJE OPARTE NA localStorage (stare)      *
  *************************************************/
 
 // Funkcja dodająca produkt do koszyka w localStorage (nieużywana przy bazie)
@@ -26,10 +26,10 @@ function addToCartLocalStorage(productName) {
     updateCartCountLocal();
     updateCartWidgetCountLocal();
     displayCartLocal();
-    showNotification();
+    showNotification('Dodano do koszyka (localStorage)!');
 }
 
-// Funkcja lokalna do aktualizacji licznika (localStorage)
+// Aktualizacja licznika w localStorage
 function updateCartCountLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
@@ -39,7 +39,6 @@ function updateCartCountLocal() {
         }
         return;
     }
-
     const cartKey = `cart_${currentUser}`;
     const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
     const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -49,21 +48,18 @@ function updateCartCountLocal() {
     }
 }
 
-// Funkcja lokalna do wyświetlania zawartości koszyka (localStorage)
+// Wyświetlanie zawartości koszyka (localStorage)
 function displayCartLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
         alert('Musisz być zalogowany, aby zobaczyć swój koszyk (localStorage).');
         return;
     }
-
     const cartKey = `cart_${currentUser}`;
     const cartItems = document.getElementById('cart-items');
     const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-
     if (cartItems) {
         cartItems.innerHTML = '';
-
         if (cart.length === 0) {
             cartItems.innerHTML = '<li>Twój koszyk jest pusty.</li>';
         } else {
@@ -76,43 +72,35 @@ function displayCartLocal() {
     }
 }
 
-// Funkcja lokalna do wysyłania zamówienia (localStorage)
+// Wysyłanie zamówienia (localStorage)
 function sendOrderLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
         alert('Musisz być zalogowany, aby wysłać zamówienie (localStorage).');
         return;
     }
-
     const cartKey = `cart_${currentUser}`;
     const cartItems = JSON.parse(localStorage.getItem(cartKey)) || [];
     if (cartItems.length === 0) {
         alert('Koszyk jest pusty!');
         return;
     }
-
     const ordersKey = 'orders';
     const orders = JSON.parse(localStorage.getItem(ordersKey)) || [];
-
-    // Dodajemy zamówienie wraz z nazwą użytkownika
     const order = {
         user: currentUser,
         items: cartItems
     };
-    
     orders.push(order);
-
     localStorage.setItem(ordersKey, JSON.stringify(orders));
-
     localStorage.removeItem(cartKey);
-
     updateCartCountLocal();
     updateCartWidgetCountLocal();
     alert('Zamówienie zostało złożone (LOCAL).');
     displayCartLocal();
 }
 
-// Powiadomienie (pływające)
+// Powiadomienie
 function showNotification(message) {
     const notification = document.getElementById('floating-notification');
     if (notification) {
@@ -124,11 +112,10 @@ function showNotification(message) {
     }
 }
 
-// Widget count (localStorage) – stary
+// Widget count dla localStorage (stary)
 function updateCartWidgetCountLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) return;
-
     const cartKey = `cart_${currentUser}`;
     const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
     const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -138,7 +125,7 @@ function updateCartWidgetCountLocal() {
     }
 }
 
-// Inicjalizacja koszyka (LOCAL)
+// Inicjalizacja funkcji związanych z localStorage
 document.addEventListener('DOMContentLoaded', () => {
     updateCartCountLocal();
     if (document.getElementById('cart-widget-count')) {
@@ -147,16 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
     displayCartLocal();
 });
 
+
 /*************************************************
- * 2. NOWA FUNKCJA – obsługa dodania do koszyka   *
- *    z BAZY (API) i od razu zmniejszanie ilości  *
+ * 2. FUNKCJE OBSŁUGUJĄCE DODAWANIE DO KOSZYKA (API)
  *************************************************/
 
 // Nowa funkcja dodawania produktu do koszyka (API)
 async function addToCart(productId) {
     const userId = localStorage.getItem('userId');
     const quantity = 1;
-
     if (!userId) {
         alert('Musisz być zalogowany, aby dodać do koszyka.');
         return;
@@ -165,34 +151,28 @@ async function addToCart(productId) {
         alert('Brak ID produktu');
         return;
     }
-
     try {
         const response = await fetch('/api/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, productId, quantity })
         });
-
         if (!response.ok) {
             const err = await response.json();
             alert(err.message || 'Błąd przy dodawaniu do koszyka');
             return;
         }
-
         const { updatedProduct } = await response.json();
         console.log('Dodano do koszyka (API):', updatedProduct);
-
         // Aktualizacja widoku produktu
         updateProductDOM(updatedProduct);
         // Aktualizacja licznika koszyka
         updateCartWidgetCount();
-
         // Opcjonalnie: jeśli ilość produktu spadnie do 0, usuń element z DOM
         if (updatedProduct.quantity <= 0) {
             const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
             if (elem) elem.remove();
         }
-
         showNotification('Dodano do koszyka!');
     } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
@@ -201,13 +181,14 @@ async function addToCart(productId) {
 
 // Funkcja do aktualizacji widocznej ilości produktu w DOM (API)
 function updateProductDOM(updatedProduct) {
-    // Konwertuj _id do stringa, aby mieć pewność, że typ jest zgodny
+    // Konwertujemy _id do stringa, żeby mieć pewność, że typ jest zgodny
     const productId = updatedProduct._id.toString();
     // Używamy selektora opartego na atrybucie data-id
     const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
     if (productElement) {
         const quantityElement = productElement.querySelector('.product-quantity');
         if (quantityElement) {
+            // Aktualizacja tekstu z nową ilością
             quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
             console.log("Zaktualizowano ilość produktu w DOM dla id", productId, "na:", updatedProduct.quantity);
         } else {
@@ -230,7 +211,6 @@ function updateProductDOM(updatedProduct) {
 function updateCart() {
     const userId = localStorage.getItem('userId');
     if (!userId) return;
-
     fetch(`/api/cart/${userId}`)
         .then(response => response.json())
         .then(cartItems => {
@@ -245,8 +225,7 @@ function updateCart() {
         });
 }
 
-// Funkcja wywoływana przez addToCart w celu aktualizacji widżetu koszyka
+// Funkcja wywoływana przez addToCart, aby zaktualizować widżet koszyka
 function updateCartWidgetCount() {
-    // Używamy funkcji updateCart, która aktualizuje licznik
     updateCart();
 }
