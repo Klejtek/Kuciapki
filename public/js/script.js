@@ -182,11 +182,11 @@ async function addToCart(productId) {
         const { updatedProduct } = await response.json();
         console.log('Dodano do koszyka (API):', updatedProduct);
 
-        // Zaktualizuj widok konkretnego produktu przy użyciu atrybutu data-id
+        // Aktualizacja widoku produktu - używamy selektora opartego na data-id
         updateProductDOM(updatedProduct);
         updateCartWidgetCount();
 
-        // Jeśli ilość produktu spadnie do 0, usuń element z DOM (opcjonalnie)
+        // Opcjonalnie: jeśli ilość produktu spadnie do 0, usuń element z DOM
         if (updatedProduct.quantity <= 0) {
             const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
             if (elem) elem.remove();
@@ -200,13 +200,15 @@ async function addToCart(productId) {
 
 // Funkcja do aktualizacji widocznej ilości produktu w DOM (API)
 function updateProductDOM(updatedProduct) {
-    // Używamy selektora opartego na atrybucie data-id, ponieważ produkty są tworzone z data-id, a nie id
+    // Używamy selektora opartego na atrybucie data-id, ponieważ elementy produktów mają data-id
     const productElement = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
     if (productElement) {
         const quantityElement = productElement.querySelector('.product-quantity');
         if (quantityElement) {
             quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
             console.log("Zaktualizowano ilość produktu w DOM na:", updatedProduct.quantity);
+        } else {
+            console.warn("Nie znaleziono elementu .product-quantity dla produktu", updatedProduct._id);
         }
         // Jeśli ilość spadnie do 0, zablokuj przycisk
         if (updatedProduct.quantity <= 0) {
