@@ -10,7 +10,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // -- Połączenie z MongoDB
-// UWAGA: Dane połączenia (wraz z użytkownikiem/hasłem) najlepiej umieszczać w zmiennych środowiskowych
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://michalklejnocki:Madafaka%2C123@cluster0.rvmfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas'))
@@ -23,12 +22,11 @@ app.use(express.json());
 // Ustawienie katalogu na pliki statyczne (CSS, JS, images)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Middleware do ustawienia Content-Type dla plików CSS (opcjonalne, express.static zwykle to robi)
+// Middleware do ustawienia Content-Type dla plików CSS
 app.get('*.css', (req, res, next) => {
     res.set('Content-Type', 'text/css');
     next();
 });
-
 
 //--------------------------------------------------------
 // MODELE MONGOOSE
@@ -39,7 +37,7 @@ const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
     available: { type: Boolean, default: true },
     quantity: { type: Number, default: 0 },
-    // Dodatkowe pola, np. price, description, image, można dodać później.
+    // Możesz dodać pola, np.: price, description, image
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -73,14 +71,12 @@ const orderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', orderSchema);
 
-
 //--------------------------------------------------------
 // ENDPOINTY API (Produkty, Koszyk, Zamówienia, Użytkownicy)
 //--------------------------------------------------------
 
 // ------ Produkty ------
 
-// Pobieranie wszystkich produktów
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -101,9 +97,9 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
-// Admin – aktualizacja pola available i quantity
+// Admin może zmienić "available" i "quantity" produktu
 app.put('/api/products/:id', async (req, res) => {
-    console.log('REQUEST BODY:', req.body); // Debug
+    console.log('REQUEST BODY:', req.body); // Logowanie request body (dla debugowania)
     const { id } = req.params;
     const { available, quantity } = req.body;
     try {
@@ -131,11 +127,11 @@ app.delete('/api/products/:id', async (req, res) => {
 // ------ Koszyk ------
 
 /*
-  POST /api/cart:
-  - Sprawdza dostępność produktu,
-  - Odejmuje ilość z magazynu,
-  - Dodaje lub aktualizuje element w koszyku,
-  - Zwraca zaktualizowany produkt (do natychmiastowej aktualizacji DOM).
+    Zmieniony endpoint POST /api/cart:
+    - od razu sprawdzamy product.quantity,
+    - jeśli wystarczy, odejmujemy (rezerwacja),
+    - potem zapisujemy do kolekcji Cart,
+    - zwracamy cartItem + updatedProduct
 */
 app.post('/api/cart', async (req, res) => {
     const { userId, productId, quantity } = req.body;
@@ -153,7 +149,7 @@ app.post('/api/cart', async (req, res) => {
             });
         }
 
-        // 3. Odejmij ilość z magazynu
+        // 3. Odejmuje z magazynu
         product.quantity -= quantity;
         await product.save();
 
@@ -166,7 +162,7 @@ app.post('/api/cart', async (req, res) => {
         }
         await cartItem.save();
 
-        // 5. Zwróć element koszyka oraz zaktualizowany produkt
+        // 5. Zwrotnie wyślij np. { cartItem, updatedProduct }
         res.status(200).json({
             cartItem,
             updatedProduct: product
@@ -177,7 +173,6 @@ app.post('/api/cart', async (req, res) => {
     }
 });
 
-// Pobieranie koszyka dla danego użytkownika
 app.get('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
@@ -188,49 +183,24 @@ app.get('/api/cart/:userId', async (req, res) => {
     }
 });
 
-/*
-  DELETE /api/cart/:userId/:productId:
-  - Znajduje element w koszyku,
-  - Przywraca usuniętą ilość do stanu magazynowego,
-  - Usuwa element z koszyka,
-  - Zwraca zaktualizowany produkt, aby natychmiast zaktualizować widok.
-*/
+// Usuwanie 1 produktu z koszyka
 app.delete('/api/cart/:userId/:productId', async (req, res) => {
     const { userId, productId } = req.params;
     try {
-        // Znajdź pozycję w koszyku
-        const cartItem = await Cart.findOne({ userId, productId });
-        if (!cartItem) {
+        const deletedItem = await Cart.findOneAndDelete({ userId, productId });
+        if (!deletedItem) {
             return res.status(404).json({ message: 'Produkt nie został znaleziony w koszyku' });
         }
-
-        // Przywróć ilość produktu w magazynie
-        const product = await Product.findById(productId);
-        if (product) {
-            product.quantity += cartItem.quantity;
-            await product.save();
-        }
-
-        // Usuń element z koszyka
-        await Cart.findOneAndDelete({ userId, productId });
-        res.status(200).json({ message: 'Produkt został usunięty z koszyka', updatedProduct: product });
+        res.status(200).json({ message: 'Produkt został usunięty z koszyka' });
     } catch (error) {
         res.status(500).json({ message: 'Błąd podczas usuwania produktu z koszyka', error });
     }
 });
 
-// Czyszczenie koszyka – dla każdego elementu przywracamy ilość
+// Czyszczenie koszyka
 app.delete('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
-        const cartItems = await Cart.find({ userId });
-        for (const item of cartItems) {
-            const product = await Product.findById(item.productId);
-            if (product) {
-                product.quantity += item.quantity;
-                await product.save();
-            }
-        }
         await Cart.deleteMany({ userId });
         res.status(200).json({ message: 'Koszyk został wyczyszczony' });
     } catch (error) {
@@ -278,7 +248,7 @@ app.post('/api/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Nieprawidłowa nazwa użytkownika lub hasło' });
         }
-        // Zwracamy userId, username i role – front może to zapisać (np. w localStorage)
+        // Zwracamy userId i role – front może to sobie zapisać w localStorage
         res.status(200).json({ userId: user._id, username: user.username, role: user.role });
     } catch (error) {
         res.status(500).json({ message: 'Błąd podczas logowania', error });
@@ -307,7 +277,7 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
-        // 3. Tworzymy zamówienie
+        // 3. Skoro wystarczy ilości, tworzymy zamówienie
         const order = new Order({
             userId,
             products: cartItems.map(item => ({
@@ -317,7 +287,7 @@ app.post('/api/orders', async (req, res) => {
         });
         await order.save();
 
-        // 4. Zmniejszamy ilości w magazynie (dla każdego elementu w koszyku)
+        // 4. Zmniejszamy ilości w magazynie
         for (const cartItem of cartItems) {
             const product = await Product.findById(cartItem.productId);
             product.quantity -= cartItem.quantity;
@@ -326,13 +296,14 @@ app.post('/api/orders', async (req, res) => {
 
         // 5. Czyścimy koszyk
         await Cart.deleteMany({ userId });
+
         res.status(200).json({ message: 'Zamówienie zostało złożone', order });
     } catch (error) {
         res.status(500).json({ message: 'Wystąpił błąd podczas składania zamówienia', error });
     }
 });
 
-// Pobieranie zamówień o statusie "pending"
+// Pobieranie wszystkich zamówień (tylko 'pending')
 app.get('/api/orders', async (req, res) => {
     try {
         const orders = await Order.find({ status: 'pending' })
@@ -344,7 +315,7 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
-// Przeniesienie zamówienia do "completed"
+// Przenoszenie zamówienia do zrealizowanych (completed)
 app.post('/api/orders/:id/complete', async (req, res) => {
     const { id } = req.params;
     try {
@@ -360,7 +331,7 @@ app.post('/api/orders/:id/complete', async (req, res) => {
     }
 });
 
-// Pobieranie zamówień "completed"
+// Pobieranie zrealizowanych
 app.get('/api/orders/completed', async (req, res) => {
     try {
         const completedOrders = await Order.find({ status: 'completed' })
@@ -372,7 +343,7 @@ app.get('/api/orders/completed', async (req, res) => {
     }
 });
 
-// Przeniesienie zamówienia do "paid"
+// Przenoszenie zamówienia do opłaconych (paid)
 app.post('/api/orders/:id/pay', async (req, res) => {
     const { id } = req.params;
     try {
@@ -388,7 +359,7 @@ app.post('/api/orders/:id/pay', async (req, res) => {
     }
 });
 
-// Pobieranie zamówień "paid"
+// Pobieranie opłaconych
 app.get('/api/orders/paid', async (req, res) => {
     try {
         const paidOrders = await Order.find({ status: 'paid' })
@@ -416,7 +387,7 @@ app.delete('/api/orders/:id', async (req, res) => {
     }
 });
 
-// Podsumowanie zamówień wg użytkownika
+// Podsumowanie zamówień (wg użytkownika)
 app.get('/api/summary', async (req, res) => {
     try {
         const orders = await Order.find({ status: 'completed' })
@@ -454,7 +425,6 @@ app.delete('/api/clear-summary', async (req, res) => {
         res.status(500).json({ message: 'Błąd podczas czyszczenia danych zamówień.', error });
     }
 });
-
 
 // ------ Obsługa plików HTML ------
 
@@ -542,233 +512,3 @@ app.delete('/api/orders/:userId/by-date/:date', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Serwer działa na http://localhost:${PORT}`);
 });
-
-
-/*************************************************
- * 1. STARE FUNKCJE oparte na localStorage        *
- *************************************************/
-
-// Funkcje obsługujące koszyk przy użyciu localStorage (dla porównania lub trybu offline)
-function addToCartLocalStorage(productName) {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby dodać coś do koszyka (localStorage).');
-        return;
-    }
-
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-
-    const existingProduct = cart.find(item => item.name === productName);
-
-    if (existingProduct) {
-        existingProduct.quantity += 1;
-    } else {
-        cart.push({ name: productName, quantity: 1 });
-    }
-
-    localStorage.setItem(cartKey, JSON.stringify(cart));
-
-    updateCartCountLocal();
-    updateCartWidgetCountLocal();
-    displayCartLocal();
-    showNotification();
-}
-
-function updateCartCountLocal() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        const cartCountElement = document.getElementById('cart-count');
-        if (cartCountElement) {
-            cartCountElement.textContent = 0;
-        }
-        return;
-    }
-
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-    const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    const cartCountElement = document.getElementById('cart-count');
-    if (cartCountElement) {
-        cartCountElement.textContent = cartCount;
-    }
-}
-
-function displayCartLocal() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby zobaczyć swój koszyk (localStorage).');
-        return;
-    }
-
-    const cartKey = `cart_${currentUser}`;
-    const cartItems = document.getElementById('cart-items');
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-
-    if (cartItems) {
-        cartItems.innerHTML = '';
-
-        if (cart.length === 0) {
-            cartItems.innerHTML = '<li>Twój koszyk jest pusty.</li>';
-        } else {
-            cart.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.name} x ${item.quantity}`;
-                cartItems.appendChild(li);
-            });
-        }
-    }
-}
-
-function sendOrderLocal() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) {
-        alert('Musisz być zalogowany, aby wysłać zamówienie (localStorage).');
-        return;
-    }
-
-    const cartKey = `cart_${currentUser}`;
-    const cartItems = JSON.parse(localStorage.getItem(cartKey)) || [];
-    if (cartItems.length === 0) {
-        alert('Koszyk jest pusty!');
-        return;
-    }
-
-    const ordersKey = 'orders';
-    const orders = JSON.parse(localStorage.getItem(ordersKey)) || [];
-
-    // Dodajemy zamówienie wraz z nazwą użytkownika
-    const order = {
-        user: currentUser,
-        items: cartItems
-    };
-
-    orders.push(order);
-
-    localStorage.setItem(ordersKey, JSON.stringify(orders));
-
-    localStorage.removeItem(cartKey);
-
-    updateCartCountLocal();
-    updateCartWidgetCountLocal();
-    alert('Zamówienie zostało złożone (LOCAL).');
-    displayCartLocal();
-}
-
-function showNotification(message) {
-    const notification = document.getElementById('floating-notification');
-    if (notification) {
-        notification.textContent = message || 'Dodano do koszyka!';
-        notification.classList.add('show');
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
-    }
-}
-
-function updateCartWidgetCountLocal() {
-    const currentUser = localStorage.getItem('loggedInUser');
-    if (!currentUser) return;
-
-    const cartKey = `cart_${currentUser}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-    const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    const cartWidgetCount = document.getElementById('cart-widget-count');
-    if (cartWidgetCount) {
-        cartWidgetCount.textContent = cartCount;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    updateCartCountLocal();
-    if (document.getElementById('cart-widget-count')) {
-        updateCartWidgetCountLocal();
-    }
-    displayCartLocal();
-});
-
-
-/*************************************************
- * 2. NOWA FUNKCJA – obsługa dodania do koszyka   *
- *    z BAZY (API) i od razu zmniejszanie ilości  *
- *************************************************/
-
-// Funkcja dodająca produkt do koszyka (API)
-// Po kliknięciu przycisku "Dodaj do koszyka" wywoływana jest ta funkcja,
-// która wysyła żądanie do endpointu /api/cart, a po otrzymaniu zaktualizowanego produktu
-// aktualizuje widok (DOM) bez potrzeby odświeżania strony.
-async function addToCart(productId) {
-    const userId = localStorage.getItem('userId');
-    const quantity = 1;
-
-    if (!userId) {
-        alert('Musisz być zalogowany, aby dodać do koszyka.');
-        return;
-    }
-    if (!productId) {
-        alert('Brak ID produktu');
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/cart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, productId, quantity })
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            alert(err.message || 'Błąd przy dodawaniu do koszyka');
-            return;
-        }
-
-        const { updatedProduct } = await response.json();
-        console.log('Dodano do koszyka (API):', updatedProduct);
-
-        // Aktualizacja widoku produktu (np. aktualizacja etykiety "Ilość dostępna")
-        updateProductDOM(updatedProduct);
-
-        // Aktualizacja widżetu koszyka (licznik)
-        updateCartWidgetCount();
-
-        // Jeśli ilość dostępna spadnie do 0, możesz usunąć produkt z listy
-        if (updatedProduct.quantity <= 0) {
-            document.querySelector(`#product-${updatedProduct._id}`).remove();
-        }
-
-        showNotification('Dodano do koszyka!');
-    } catch (error) {
-        console.error('Błąd przy dodawaniu do koszyka (API):', error);
-    }
-}
-
-// Funkcja aktualizująca wyświetlaną ilość produktu w DOM
-function updateProductDOM(updatedProduct) {
-    const productElement = document.querySelector(`#product-${updatedProduct._id}`);
-    if (productElement) {
-        const quantityElement = productElement.querySelector('.product-quantity');
-        if (quantityElement) {
-            quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-        }
-    }
-}
-
-// Funkcja aktualizująca widżet koszyka korzystając z API
-function updateCartWidgetCount() {
-    const userId = localStorage.getItem('userId');
-    if (!userId) return;
-
-    fetch(`/api/cart/${userId}`)
-        .then(response => response.json())
-        .then(cartItems => {
-            const cartCountElem = document.getElementById('cart-count');
-            if (cartCountElem) {
-                const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
-                cartCountElem.textContent = totalQuantity;
-            }
-        })
-        .catch(error => {
-            console.error('Błąd przy aktualizacji koszyka:', error);
-        });
-}
