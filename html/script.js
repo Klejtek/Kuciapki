@@ -164,53 +164,48 @@ async function addToCart(productId) {
         }
         const data = await response.json();
         console.log('Odpowiedź z API:', data);
-        // Upewnij się, że odpowiedź zawiera updatedProduct
         if (!data.updatedProduct) {
             console.warn("Brak pola updatedProduct w odpowiedzi z API");
             return;
         }
-        const updatedProduct = data.updatedProduct;
-        // Aktualizacja widoku produktu
-        updateProductDOM(updatedProduct);
-        // Aktualizacja licznika koszyka
+        // Zamiast aktualizować tylko pojedynczy element, wykonaj ponowne renderowanie listy produktów
+        refreshProductList();
         updateCartWidgetCount();
-        // Jeśli ilość spadnie do 0, usuń element z DOM (opcjonalnie)
-        if (updatedProduct.quantity <= 0) {
-            const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
-            if (elem) elem.remove();
-        }
         showNotification('Dodano do koszyka!');
     } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
     }
 }
 
-// Funkcja aktualizująca widoczność produktu w DOM (API)
-function updateProductDOM(updatedProduct) {
-    // Konwertujemy _id do stringa
-    const productId = updatedProduct._id.toString();
-    // Używamy selektora opartego na atrybucie data-id
-    const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
-    if (productElement) {
-        const currentDataId = productElement.getAttribute('data-id');
-        console.log("Element znaleziony. data-id w DOM:", currentDataId, "| updatedProduct._id:", productId);
-        const quantityElement = productElement.querySelector('.product-quantity');
-        if (quantityElement) {
-            quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-            console.log("Zaktualizowano ilość produktu w DOM dla id", productId, "na:", updatedProduct.quantity);
-        } else {
-            console.warn("Nie znaleziono elementu .product-quantity dla produktu", productId);
+// Funkcja, która pobiera z API listę produktów i renderuje je ponownie
+async function refreshProductList() {
+    try {
+        const response = await fetch('/api/products');
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        // Jeśli ilość spadnie do 0, zablokuj przycisk
-        if (updatedProduct.quantity <= 0) {
-            const btn = productElement.querySelector('.add-to-cart-btn');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Niedostępne';
+        const products = await response.json();
+        const productList = document.getElementById('product-list');
+        productList.innerHTML = ''; // Czyścimy listę
+        products.forEach(product => {
+            if (product.available) {
+                const productItem = document.createElement('div');
+                productItem.className = 'product-item';
+                productItem.setAttribute('data-id', product._id.toString());
+                productItem.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <p class="product-quantity">Ilość dostępna: ${product.quantity}</p>
+                    <img src="/images/${product.image}.webp" alt="${product.name}">
+                    <button class="add-to-cart-btn" onclick="addToCart('${product._id}')">
+                        Dodaj do koszyka
+                    </button>
+                `;
+                productList.appendChild(productItem);
             }
-        }
-    } else {
-        console.warn("Nie znaleziono elementu .product-item dla data-id:", productId);
+        });
+        console.log("Lista produktów została odświeżona");
+    } catch (error) {
+        console.error('Błąd przy odświeżaniu listy produktów:', error);
     }
 }
 
@@ -232,7 +227,7 @@ function updateCart() {
         });
 }
 
-// Funkcja wywoływana przez addToCart w celu aktualizacji widżetu koszyka
+// Funkcja wywoływana przez addToCart, aby zaktualizować widżet koszyka
 function updateCartWidgetCount() {
     updateCart();
 }
