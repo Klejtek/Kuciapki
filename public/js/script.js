@@ -29,7 +29,7 @@ function addToCartLocalStorage(productName) {
     showNotification();
 }
 
-// Funkcja lokalna do aktualizacji licznika
+// Funkcja lokalna do aktualizacji licznika (localStorage)
 function updateCartCountLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
@@ -49,7 +49,7 @@ function updateCartCountLocal() {
     }
 }
 
-// Funkcja lokalna do wyświetlania zawartości koszyka
+// Funkcja lokalna do wyświetlania zawartości koszyka (localStorage)
 function displayCartLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
@@ -76,7 +76,7 @@ function displayCartLocal() {
     }
 }
 
-// Funkcja lokalna do wysyłania zamówienia
+// Funkcja lokalna do wysyłania zamówienia (localStorage)
 function sendOrderLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) {
@@ -113,9 +113,10 @@ function sendOrderLocal() {
 }
 
 // Powiadomienie (pływające)
-function showNotification() {
+function showNotification(message) {
     const notification = document.getElementById('floating-notification');
     if (notification) {
+        notification.textContent = message || 'Dodano do koszyka!';
         notification.classList.add('show');
         setTimeout(() => {
             notification.classList.remove('show');
@@ -123,7 +124,7 @@ function showNotification() {
     }
 }
 
-// Widget count (local) – stary
+// Widget count (localStorage) – stary
 function updateCartWidgetCountLocal() {
     const currentUser = localStorage.getItem('loggedInUser');
     if (!currentUser) return;
@@ -151,22 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
  *    z BAZY (API) i od razu zmniejszanie ilości  *
  *************************************************/
 
-// Nowa funkcja dodawania produktu do koszyka (z bazy, od razu odejmujemy quantity)
+// Nowa funkcja dodawania produktu do koszyka (API)
 async function addToCart(productId) {
     const userId = localStorage.getItem('userId');
-    const quantityInput = document.getElementById(`quantity-${productId}`);
-    let quantity = 1; // domyślnie 1
-
-    if (quantityInput) {
-        quantity = parseInt(quantityInput.value);
-        if (isNaN(quantity) || quantity <= 0) {
-            alert('Nieprawidłowa ilość');
-            return;
-        }
-    }
+    const quantity = 1;
 
     if (!userId) {
-        alert('Musisz być zalogowany, aby dodać do koszyka (API).');
+        alert('Musisz być zalogowany, aby dodać do koszyka.');
         return;
     }
     if (!productId) {
@@ -175,8 +167,6 @@ async function addToCart(productId) {
     }
 
     try {
-        // Wysyłamy żądanie do /api/cart, które (w nowej wersji server.js)
-        // od razu odejmuje ilość z product.quantity
         const response = await fetch('/api/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -189,28 +179,49 @@ async function addToCart(productId) {
             return;
         }
 
-        // Otrzymamy obiekt np. { cartItem, updatedProduct }
-        const data = await response.json();
-        console.log('Dodano do koszyka (API):', data);
+        const { updatedProduct } = await response.json();
+        console.log('Dodano do koszyka (API):', updatedProduct);
 
-        // Możesz zaktualizować koszyk w DOM (np. updateCart())
-        updateCart(); 
+        // Zaktualizuj widok konkretnego produktu przy użyciu atrybutu data-id
+        updateProductDOM(updatedProduct);
+        updateCartWidgetCount();
 
-        // Zaktualizuj stan produktu w DOM – np. odejmij od "Ilość dostępna"
-        // JEŚLI endpoint /api/cart zwraca updatedProduct,
-        // musimy najpierw server.js tak zmienić, by to zwracał.
-        // O ile w tym momencie jeszcze tego nie ma, to w kodzie poniżej
-        // zaprezentuję, jak by to wyglądało:
-        // if (data.updatedProduct) {
-        //     updateProductDOM(data.updatedProduct);
-        // }
+        // Jeśli ilość produktu spadnie do 0, usuń element z DOM (opcjonalnie)
+        if (updatedProduct.quantity <= 0) {
+            const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
+            if (elem) elem.remove();
+        }
 
+        showNotification('Dodano do koszyka!');
     } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
     }
 }
 
-// Funkcja do aktualizacji koszyka z bazy
+// Funkcja do aktualizacji widocznej ilości produktu w DOM (API)
+function updateProductDOM(updatedProduct) {
+    // Używamy selektora opartego na atrybucie data-id, ponieważ produkty są tworzone z data-id, a nie id
+    const productElement = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
+    if (productElement) {
+        const quantityElement = productElement.querySelector('.product-quantity');
+        if (quantityElement) {
+            quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
+            console.log("Zaktualizowano ilość produktu w DOM na:", updatedProduct.quantity);
+        }
+        // Jeśli ilość spadnie do 0, zablokuj przycisk
+        if (updatedProduct.quantity <= 0) {
+            const btn = productElement.querySelector('.add-to-cart-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Niedostępne';
+            }
+        }
+    } else {
+        console.warn("Nie znaleziono elementu .product-item dla id:", updatedProduct._id);
+    }
+}
+
+// Funkcja aktualizująca koszyk z bazy (aktualizacja licznika)
 function updateCart() {
     const userId = localStorage.getItem('userId');
     if (!userId) return;
@@ -218,52 +229,19 @@ function updateCart() {
     fetch(`/api/cart/${userId}`)
         .then(response => response.json())
         .then(cartItems => {
-            // Wstaw do elementu HTML z ID "cart-items" (o ile jesteś na cart.html)
-            const cartList = document.getElementById('cart-items');
-            if (!cartList) return; // nie każda strona ma #cart-items
-
-            cartList.innerHTML = ''; // Wyczyść aktualny widok koszyka
-
-            let totalQuantity = 0;
-            cartItems.forEach(item => {
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `${item.productId.name} - Ilość: ${item.quantity}`;
-                cartList.appendChild(listItem);
-
-                totalQuantity += item.quantity; 
-            });
-
-            // Aktualizacja licznika koszyka w nagłówku
             const cartCountElem = document.getElementById('cart-count');
             if (cartCountElem) {
+                const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
                 cartCountElem.textContent = totalQuantity;
             }
         })
         .catch(error => {
-            console.error('Błąd przy pobieraniu koszyka (API):', error);
+            console.error('Błąd przy aktualizacji koszyka:', error);
         });
 }
 
-// Przykładowa funkcja do aktualizacji wyświetlanej ilości na liście produktów
-// (JEŚLI endpoint zwraca updatedProduct)
-function updateProductDOM(updatedProduct) {
-    // Szukamy elementu z data-id="..."
-    const productElem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
-    if (!productElem) return;
-
-    // Jeśli masz w HTML np. <p class="product-quantity">Ilość dostępna: X</p>
-    const qtyElem = productElem.querySelector('.product-quantity');
-    if (qtyElem) {
-        qtyElem.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-    }
-
-    // Jeśli spadło do 0 -> blokujemy przycisk lub usuwamy produkt
-    if (updatedProduct.quantity <= 0) {
-        const addBtn = productElem.querySelector('.add-to-cart-btn');
-        if (addBtn) {
-            addBtn.disabled = true;
-            addBtn.textContent = 'Niedostępne';
-        }
-        // productElem.remove(); // ewentualnie usuwamy z listy
-    }
+// Funkcja wywoływana przez addToCart w celu aktualizacji widżetu koszyka
+function updateCartWidgetCount() {
+    // Możemy użyć funkcji updateCart, która robi to samo
+    updateCart();
 }
