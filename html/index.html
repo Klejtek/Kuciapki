@@ -20,58 +20,54 @@
     </nav>
     <div id="user-info" style="color: white; padding: 10px;"></div>
   </header>
-
+  
   <main>
     <section id="product-list">
       <!-- Produkty będą ładowane dynamicznie -->
     </section>
   </main>
-
+  
   <div id="floating-notification"></div>
-
+  
   <footer>
     <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
   </footer>
-
+  
   <script>
+    // Po załadowaniu strony (i renderowaniu produktów)
     document.addEventListener('DOMContentLoaded', async function() {
       const productList = document.getElementById('product-list');
       const userInfo = document.getElementById('user-info');
       const loggedInUser = localStorage.getItem('loggedInUser');
       const logoutButton = document.getElementById('logout-button');
 
-      // Sprawdzenie, czy użytkownik jest zalogowany
       if (!loggedInUser) {
         window.location.href = 'login.html';
         return;
       }
-
-      // Wyświetlenie nazwy zalogowanego użytkownika
       userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
-
-      // Obsługa wylogowania
+      
       logoutButton.addEventListener('click', function(event) {
         event.preventDefault();
         localStorage.removeItem('userId');
         localStorage.removeItem('loggedInUser');
         window.location.href = 'login.html';
       });
-
-      // Pobranie listy produktów
+      
       try {
         const response = await fetch('/api/products');
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const products = await response.json();
-
         products.forEach(product => {
           if (product.available) {
             const productItem = document.createElement('div');
             productItem.className = 'product-item';
-            // Ustawiamy data-id jako string
+            // Ustawiamy atrybut data-id jako string
             productItem.setAttribute('data-id', product._id.toString());
-
+            console.log("Renderowanie produktu z _id:", product._id.toString());
+            
             productItem.innerHTML = `
               <h3>${product.name}</h3>
               <p class="product-quantity">Ilość dostępna: ${product.quantity}</p>
@@ -83,95 +79,106 @@
             productList.appendChild(productItem);
           }
         });
-
         updateCartWidgetCount();
       } catch (error) {
         console.error('Błąd przy pobieraniu produktów:', error);
       }
     });
-
-    // Funkcja dodająca produkt do koszyka
+    
+    // Funkcja dodająca produkt do koszyka (API)
     async function addToCart(productId) {
       const userId = localStorage.getItem('userId');
-      const quantity = 1; // Dodajemy 1 sztukę
-
-      if (!userId || !productId) {
-        alert('Brak ID użytkownika lub produktu');
+      const quantity = 1;
+      if (!userId) {
+        alert('Musisz być zalogowany, aby dodać do koszyka.');
         return;
       }
-
+      if (!productId) {
+        alert('Brak ID produktu');
+        return;
+      }
       try {
         const response = await fetch('/api/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, productId, quantity })
         });
-
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+          const err = await response.json();
+          alert(err.message || 'Błąd przy dodawaniu do koszyka');
+          return;
         }
-
-        const { updatedProduct } = await response.json();
-        console.log('Zaktualizowany produkt:', updatedProduct);
-
-        updateCartWidgetCount();
-        showNotification('Produkt dodany do koszyka!');
+        const data = await response.json();
+        console.log('Odpowiedź z API:', data);
+        if (!data.updatedProduct) {
+          console.warn("Brak updatedProduct w odpowiedzi z API");
+          return;
+        }
+        const updatedProduct = data.updatedProduct;
         updateProductDOM(updatedProduct);
+        updateCartWidgetCount();
+        if (updatedProduct.quantity <= 0) {
+          const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
+          if (elem) elem.remove();
+        }
+        showNotification('Dodano do koszyka!');
       } catch (error) {
-        console.error('Błąd przy dodawaniu do koszyka:', error);
-        alert('Wystąpił problem przy dodawaniu produktu do koszyka.');
+        console.error('Błąd przy dodawaniu do koszyka (API):', error);
       }
     }
-
-    // Funkcja aktualizująca licznik koszyka
-    function updateCartWidgetCount() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
-
-      fetch(`/api/cart/${userId}`)
-        .then(response => response.json())
-        .then(cartItems => {
-          const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-          document.getElementById('cart-count').textContent = cartCount;
-        })
-        .catch(error => console.error('Błąd przy aktualizacji koszyka:', error));
-    }
-
-    // Zaktualizowana funkcja do aktualizacji DOM produktu
+    
+    // Funkcja aktualizująca widoczność produktu w DOM (API)
     function updateProductDOM(updatedProduct) {
       // Konwertujemy _id do stringa
-      let productId = updatedProduct._id;
-      if (typeof productId !== "string") {
-        productId = productId.toString();
-      }
-      
-      // Znajdź element produktu na podstawie data-id
-      const productElem = document.querySelector(`.product-item[data-id="${productId}"]`);
-      console.log("Aktualizacja DOM dla produktu o id:", productId, productElem);
-      
-      if (productElem) {
-        const quantityElem = productElem.querySelector('.product-quantity');
-        if (quantityElem) {
-          // Aktualizujemy tekst z nową ilością
-          quantityElem.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-          console.log("Zaktualizowano ilość produktu w DOM na:", updatedProduct.quantity);
+      const productId = updatedProduct._id.toString();
+      // Wyszukujemy element na podstawie atrybutu data-id
+      const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
+      if (productElement) {
+        const currentDataId = productElement.getAttribute('data-id');
+        console.log("Element znaleziony. data-id w DOM:", currentDataId, "| updatedProduct._id:", productId);
+        const quantityElement = productElement.querySelector('.product-quantity');
+        if (quantityElement) {
+          quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
+          console.log("Zaktualizowano ilość produktu w DOM dla id", productId, "na:", updatedProduct.quantity);
         } else {
           console.warn("Nie znaleziono elementu .product-quantity dla produktu", productId);
         }
-        // Jeśli ilość jest mniejsza lub równa 0, zmień stan przycisku
         if (updatedProduct.quantity <= 0) {
-          const btn = productElem.querySelector('.add-to-cart-btn');
+          const btn = productElement.querySelector('.add-to-cart-btn');
           if (btn) {
             btn.disabled = true;
             btn.textContent = 'Niedostępne';
           }
         }
       } else {
-        console.warn("Nie znaleziono elementu .product-item dla id:", productId);
+        console.warn("Nie znaleziono elementu .product-item dla data-id:", productId);
       }
     }
-
-    // Funkcja wyświetlająca powiadomienie
+    
+    // Funkcja aktualizująca licznik koszyka
+    function updateCartWidgetCount() {
+      updateCart();
+    }
+    
+    // Funkcja aktualizująca koszyk (licznik) na podstawie danych z API
+    function updateCart() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      fetch(`/api/cart/${userId}`)
+        .then(response => response.json())
+        .then(cartItems => {
+          const cartCountElem = document.getElementById('cart-count');
+          if (cartCountElem) {
+            const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
+            cartCountElem.textContent = totalQuantity;
+          }
+        })
+        .catch(error => {
+          console.error('Błąd przy aktualizacji koszyka:', error);
+        });
+    }
+    
+    // Powiadomienie
     function showNotification(message) {
       const notification = document.getElementById('floating-notification');
       notification.textContent = message;
