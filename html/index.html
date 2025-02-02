@@ -47,9 +47,7 @@
             }
 
             // Wyświetlenie nazwy zalogowanego użytkownika
-            if (loggedInUser) {
-                userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
-            }
+            userInfo.textContent = `Zalogowany jako: ${loggedInUser}`;
 
             // Obsługa wylogowania
             logoutButton.addEventListener('click', function(event) {
@@ -61,7 +59,7 @@
 
             // Pobranie listy produktów
             try {
-                const response = await fetch('/api/products'); // Zmień na lokalny adres przy testach
+                const response = await fetch('/api/products');
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
@@ -71,7 +69,8 @@
                     if (product.available) {
                         const productItem = document.createElement('div');
                         productItem.className = 'product-item';
-                        productItem.setAttribute('data-id', product._id); // kluczowe dla identyfikacji
+                        // Ustawiamy atrybut data-id na string (przekształcamy na string, jeśli to konieczne)
+                        productItem.setAttribute('data-id', product._id.toString());
 
                         productItem.innerHTML = `
                             <h3>${product.name}</h3>
@@ -138,27 +137,34 @@
                 .catch(error => console.error('Błąd przy aktualizacji koszyka:', error));
         }
 
-        // Funkcja do aktualizacji DOM produktu
+        // Zaktualizowana funkcja do aktualizacji DOM produktu
         function updateProductDOM(updatedProduct) {
-            const productElem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
-            if (!productElem) {
-                console.log('Nie znaleziono produktu w DOM:', updatedProduct._id);
-                return;
+            // Upewnij się, że _id jest stringiem
+            let productId = updatedProduct._id;
+            if (typeof productId !== "string") {
+                productId = productId.toString();
             }
 
-            const quantityElem = productElem.querySelector('.product-quantity');
-            if (quantityElem) {
-                quantityElem.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-            }
-
-            if (updatedProduct.quantity <= 0) {
-                const btn = productElem.querySelector('.add-to-cart-btn');
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Niedostępne';
+            // Znajdź element produktu na podstawie atrybutu data-id
+            const productElem = document.querySelector(`.product-item[data-id="${productId}"]`);
+            console.log("Aktualizacja DOM dla produktu o id:", productId, productElem);
+            if (productElem) {
+                const quantityElem = productElem.querySelector('.product-quantity');
+                if (quantityElem) {
+                    quantityElem.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
+                } else {
+                    console.warn("Nie znaleziono elementu .product-quantity dla produktu", productId);
                 }
-                // Ewentualne usunięcie produktu z DOM
-                // productElem.remove();
+                // Jeśli ilość spadnie do 0, zablokuj przycisk
+                if (updatedProduct.quantity <= 0) {
+                    const btn = productElem.querySelector('.add-to-cart-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Niedostępne';
+                    }
+                }
+            } else {
+                console.warn("Nie znaleziono elementu .product-item dla id:", productId);
             }
         }
 
