@@ -182,8 +182,9 @@ async function addToCart(productId) {
         const { updatedProduct } = await response.json();
         console.log('Dodano do koszyka (API):', updatedProduct);
 
-        // Aktualizacja widoku produktu - używamy selektora opartego na data-id
+        // Aktualizacja widoku produktu
         updateProductDOM(updatedProduct);
+        // Aktualizacja licznika koszyka
         updateCartWidgetCount();
 
         // Opcjonalnie: jeśli ilość produktu spadnie do 0, usuń element z DOM
@@ -200,17 +201,19 @@ async function addToCart(productId) {
 
 // Funkcja do aktualizacji widocznej ilości produktu w DOM (API)
 function updateProductDOM(updatedProduct) {
-    // Używamy selektora opartego na atrybucie data-id, ponieważ elementy produktów mają data-id
-    const productElement = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
+    // Konwertuj _id do stringa, aby mieć pewność, że typ jest zgodny
+    const productId = updatedProduct._id.toString();
+    // Używamy selektora opartego na atrybucie data-id
+    const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
     if (productElement) {
         const quantityElement = productElement.querySelector('.product-quantity');
         if (quantityElement) {
             quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-            console.log("Zaktualizowano ilość produktu w DOM na:", updatedProduct.quantity);
+            console.log("Zaktualizowano ilość produktu w DOM dla id", productId, "na:", updatedProduct.quantity);
         } else {
-            console.warn("Nie znaleziono elementu .product-quantity dla produktu", updatedProduct._id);
+            console.warn("Nie znaleziono elementu .product-quantity dla produktu", productId);
         }
-        // Jeśli ilość spadnie do 0, zablokuj przycisk
+        // Jeśli ilość produktu spadnie do 0, zablokuj przycisk
         if (updatedProduct.quantity <= 0) {
             const btn = productElement.querySelector('.add-to-cart-btn');
             if (btn) {
@@ -219,7 +222,7 @@ function updateProductDOM(updatedProduct) {
             }
         }
     } else {
-        console.warn("Nie znaleziono elementu .product-item dla id:", updatedProduct._id);
+        console.warn("Nie znaleziono elementu .product-item dla data-id:", productId);
     }
 }
 
@@ -244,6 +247,6 @@ function updateCart() {
 
 // Funkcja wywoływana przez addToCart w celu aktualizacji widżetu koszyka
 function updateCartWidgetCount() {
-    // Możemy użyć funkcji updateCart, która robi to samo
+    // Używamy funkcji updateCart, która aktualizuje licznik
     updateCart();
 }
