@@ -55,11 +55,12 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Model Koszyka
+// Model Koszyka (z dodanym polem createdAt)
 const cartItemSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-  quantity: { type: Number, default: 1 }
+  quantity: { type: Number, default: 1 },
+  createdAt: { type: Date, default: Date.now }  // Data dodania pozycji do koszyka
 });
 const Cart = mongoose.model('Cart', cartItemSchema);
 
@@ -162,12 +163,13 @@ app.post('/api/cart', async (req, res) => {
     let cartItem = await Cart.findOne({ userId, productId });
     if (cartItem) {
       cartItem.quantity += quantity;
+      cartItem.createdAt = Date.now(); // aktualizujemy datę dodania, aby przedłużyć czas rezerwacji
     } else {
       cartItem = new Cart({ userId, productId, quantity });
     }
     await cartItem.save();
 
-    // 5. Zwróć dane (zarówno koszyk, jak i aktualny stan produktu)
+    // 5. Zwróć dane (koszyk i aktualny stan produktu)
     res.status(200).json({
       cartItem,
       updatedProduct: product
@@ -527,6 +529,38 @@ app.delete('/api/orders/:userId/by-date/:date', async (req, res) => {
   }
 });
 
+
+//--------------------------------------------------------
+// Mechanizm automatycznego przywracania pozycji koszyka
+//--------------------------------------------------------
+setInterval(async () => {
+  try {
+    // Obliczamy datę, przed którą pozycje uznajemy za przeterminowane (15 minut temu)
+    const expirationTime = new Date(Date.now() - 15 * 60 * 1000);
+
+    // Znajdujemy wszystkie pozycje koszyka, które zostały dodane przed tą datą
+    const expiredCartItems = await Cart.find({ createdAt: { $lt: expirationTime } });
+
+    for (const cartItem of expiredCartItems) {
+      // Znajdź produkt, którego dotyczy pozycja koszyka
+      const product = await Product.findById(cartItem.productId);
+      if (product) {
+        // Przywracamy zarezerwowaną ilość produktu do magazynu
+        product.quantity += cartItem.quantity;
+        await product.save();
+      }
+      // Usuwamy przeterminowaną pozycję z koszyka
+      await Cart.findByIdAndDelete(cartItem._id);
+    }
+    if (expiredCartItems.length > 0) {
+      console.log(`Przywrócono ${expiredCartItems.length} przeterminowanych pozycji koszyka.`);
+    }
+  } catch (error) {
+    console.error("Błąd podczas przywracania przeterminowanych pozycji koszyka:", error);
+  }
+}, 60 * 1000);  // Uruchamiamy co 60 sekund
+
+// Uruchomienie serwera
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
 });
