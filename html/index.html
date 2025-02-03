@@ -75,7 +75,7 @@
           if (product.available) {
             const productItem = document.createElement('div');
             productItem.className = 'product-item';
-            // Ustawiamy atrybut data-id, aby później móc odszukać ten element
+            // Ustawiamy atrybut data-id, aby później móc odnaleźć ten element
             productItem.setAttribute('data-id', product._id.toString());
 
             productItem.innerHTML = `
@@ -94,7 +94,7 @@
       }
     }
 
-    // Funkcja dodająca produkt do koszyka (wywołuje API, a następnie odświeża listę)
+    // Funkcja dodająca produkt do koszyka (wywołuje API, a następnie aktualizuje widok)
     async function addToCart(productId) {
       const userId = localStorage.getItem('userId');
       const quantity = 1;
@@ -119,7 +119,11 @@
         }
         const data = await response.json();
         console.log('Odpowiedź z API (addToCart):', data);
-        // Odczekujemy 500 ms, aby baza na pewno zapisała zmiany, a następnie odświeżamy listę produktów
+        // Jeśli backend zwrócił zaktualizowany produkt, aktualizujemy tylko jego widok
+        if (data.updatedProduct) {
+          updateProductDOM(data.updatedProduct);
+        }
+        // Dodatkowo, dla pewności, odświeżamy całą listę produktów po 500 ms
         setTimeout(() => {
           refreshProductList();
           updateCartWidgetCount();
@@ -161,6 +165,36 @@
       setTimeout(() => {
         notification.classList.remove('show');
       }, 3000);
+    }
+
+    // Funkcja debugująca, wymuszająca reflow i aktualizująca pojedynczy element produktu
+    function updateProductDOM(updatedProduct) {
+      const productId = updatedProduct._id.toString();
+      console.log("Próbuję zaktualizować produkt o data-id:", productId);
+      
+      const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
+      if (productElement) {
+        const quantityElement = productElement.querySelector('.product-quantity');
+        if (quantityElement) {
+          console.log("Przed aktualizacją, ilość:", quantityElement.textContent);
+          quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
+          console.log("Po aktualizacji, ilość:", quantityElement.textContent);
+          
+          // Wymuszenie reflow: tymczasowo ukrywamy i pokazujemy element
+          productElement.style.display = 'none';
+          productElement.offsetHeight; // Odczyt tej właściwości wymusza reflow
+          productElement.style.display = '';
+        }
+        if (updatedProduct.quantity <= 0) {
+          const btn = productElement.querySelector('.add-to-cart-btn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Niedostępne';
+          }
+        }
+      } else {
+        console.warn(`Nie znaleziono elementu produktu dla data-id: ${productId}`);
+      }
     }
   </script>
 </body>
