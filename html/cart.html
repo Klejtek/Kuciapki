@@ -1,115 +1,181 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koszyk</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koszyk</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Dodatkowe style specyficzne dla strony koszyka */
+    #cart table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    #cart th, #cart td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    #cart th {
+      background-color: #f2f2f2;
+    }
+    #cart button {
+      background-color: #333;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    #cart button:hover {
+      background-color: #555;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="logo">Sklep z Aromatami</div>
-        <nav>
-            <ul>
-                <li><a href="index.html#home">Strona Główna</a></li>
-                <li><a href="index.html#shop">Sklep</a></li>
-                <li><a href="index.html#about">O Nas</a></li>
-                <li><a href="index.html#contact">Kontakt</a></li>
-                <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
-            </ul>
-        </nav>
-    </header>
+  <header>
+    <div class="logo">Sklep z Aromatami</div>
+    <nav>
+      <ul>
+        <li><a href="index.html#home">Strona Główna</a></li>
+        <li><a href="cart.html">Koszyk (<span id="cart-count">0</span>)</a></li>
+      </ul>
+    </nav>
+  </header>
 
-    <main>
-        <section id="cart">
-            <h2>Twój Koszyk</h2>
-            <ul id="cart-items"></ul>
-            <button id="send-order" onclick="sendOrder()">Wyślij zamówienie</button>
-        </section>
-    </main>
+  <main>
+    <section id="cart">
+      <h2>Twój Koszyk</h2>
+      <!-- Tabela koszyka -->
+      <table id="cart-table">
+        <thead>
+          <tr>
+            <th>Produkt</th>
+            <th>Ilość</th>
+            <th>Akcja</th>
+          </tr>
+        </thead>
+        <tbody id="cart-items">
+          <!-- Wiersze koszyka będą generowane dynamicznie -->
+        </tbody>
+      </table>
+      <button id="send-order" onclick="sendOrder()">Wyślij zamówienie</button>
+    </section>
+  </main>
 
-    <footer>
-        <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
-    </footer>
+  <footer>
+    <p>&copy; 2024 Sklep z Aromatami. Wszystkie prawa zastrzeżone.</p>
+  </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            const cartList = document.getElementById('cart-items');
-            const userId = localStorage.getItem('userId');
+  <script>
+    // Po załadowaniu strony aktualizujemy koszyk
+    document.addEventListener('DOMContentLoaded', function() {
+      updateCart();
+    });
 
-            if (!userId) {
-                console.error('Brak userId w localStorage');
-                cartList.innerHTML = '<p>Wystąpił problem: brak ID użytkownika.</p>';
-                return;
-            }
+    async function updateCart() {
+      const cartItemsTbody = document.getElementById('cart-items');
+      const userId = localStorage.getItem('userId');
 
-            try {
-                const response = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                const cartItems = await response.json();
+      if (!userId) {
+        console.error('Brak userId w localStorage');
+        cartItemsTbody.innerHTML = '<tr><td colspan="3">Wystąpił problem: brak ID użytkownika.</td></tr>';
+        return;
+      }
 
-                if (cartItems.length === 0) {
-                    cartList.innerHTML = '<p>Koszyk jest pusty</p>';
-                } else {
-                    cartItems.forEach(item => {
-                        const productItem = document.createElement('li');
-                        productItem.className = 'cart-item';
-                        productItem.innerHTML = `
-                            <p>Produkt: ${item.productId.name}</p>
-                            <p>Ilość: ${item.quantity}</p>
-                        `;
-                        cartList.appendChild(productItem);
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching cart:', error);
-                cartList.innerHTML = '<p>Wystąpił problem z ładowaniem koszyka</p>';
-            }
-        });
-
-        async function sendOrder() {
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                alert('Brak ID użytkownika. Zaloguj się ponownie.');
-                return;
-            }
-
-            try {
-                // Wysłanie zamówienia na serwer
-                const response = await fetch(`https://kuciapki.onrender.com/api/orders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-
-                // Usunięcie koszyka z bazy danych
-                const deleteResponse = await fetch(`https://kuciapki.onrender.com/api/cart/${userId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!deleteResponse.ok) {
-                    throw new Error(`HTTP error! Status: ${deleteResponse.status}`);
-                }
-
-                // Wyczyszczenie koszyka w interfejsie użytkownika
-                localStorage.removeItem('cart');
-                document.getElementById('cart-items').innerHTML = '';
-                document.getElementById('cart-count').textContent = '0';
-
-                alert('Zamówienie zostało wysłane!');
-                // Pozostajemy na stronie koszyka
-
-            } catch (error) {
-                console.error('Error sending order:', error);
-                alert('Wystąpił problem przy wysyłaniu zamówienia.');
-            }
+      try {
+        const response = await fetch(`/api/cart/${userId}`);
+        // Obsługa sytuacji, gdy koszyk jest pusty (status 404 lub pusta tablica)
+        if (response.status === 404) {
+          cartItemsTbody.innerHTML = '<tr><td colspan="3">Koszyk jest pusty</td></tr>';
+          document.getElementById('cart-count').textContent = '0';
+          return;
         }
-    </script>
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const cartItems = await response.json();
+        if (cartItems.length === 0) {
+          cartItemsTbody.innerHTML = '<tr><td colspan="3">Koszyk jest pusty</td></tr>';
+        } else {
+          cartItemsTbody.innerHTML = ''; // Czyścimy zawartość tabeli
+          cartItems.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'cart-item';
+            tr.innerHTML = `
+              <td>${item.productId.name}</td>
+              <td>${item.quantity}</td>
+              <td>
+                <button onclick="removeFromCart('${item.productId._id}')">Usuń</button>
+              </td>
+            `;
+            cartItemsTbody.appendChild(tr);
+          });
+          // Aktualizacja liczby produktów w koszyku
+          document.getElementById('cart-count').textContent = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+        }
+      } catch (error) {
+        console.error('Error fetching cart:', error);
+        cartItemsTbody.innerHTML = '<tr><td colspan="3">Wystąpił problem z ładowaniem koszyka</td></tr>';
+      }
+    }
+
+    // Funkcja usuwająca produkt z koszyka
+    async function removeFromCart(productId) {
+      const userId = localStorage.getItem('userId');
+      if (!userId || !productId) {
+        alert('Brak ID użytkownika lub produktu');
+        return;
+      }
+      try {
+        const response = await fetch(`/api/cart/${userId}/${productId}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          alert('Produkt został usunięty z koszyka');
+          updateCart(); // Zaktualizuj koszyk po usunięciu produktu
+        } else {
+          alert('Wystąpił problem przy usuwaniu produktu z koszyka');
+        }
+      } catch (error) {
+        console.error('Error removing product from cart:', error);
+      }
+    }
+
+    // Funkcja wysyłająca zamówienie
+    async function sendOrder() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('Brak ID użytkownika. Zaloguj się ponownie.');
+        return;
+      }
+      try {
+        const response = await fetch(`/api/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        // Usunięcie koszyka z bazy danych
+        const deleteResponse = await fetch(`/api/cart/${userId}`, {
+          method: 'DELETE'
+        });
+        if (!deleteResponse.ok) {
+          throw new Error(`HTTP error! Status: ${deleteResponse.status}`);
+        }
+        // Wyczyszczenie koszyka w interfejsie użytkownika
+        localStorage.removeItem('cart');
+        document.getElementById('cart-items').innerHTML = '<tr><td colspan="3">Koszyk jest pusty</td></tr>';
+        document.getElementById('cart-count').textContent = '0';
+        alert('Zamówienie zostało wysłane!');
+        // Pozostajemy na stronie koszyka
+      } catch (error) {
+        console.error('Error sending order:', error);
+        alert('Wystąpił problem przy wysyłaniu zamówienia.');
+      }
+    }
+  </script>
 </body>
 </html>
