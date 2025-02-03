@@ -109,53 +109,18 @@
           return;
         }
         const data = await response.json();
-        console.log('Odpowiedź z API:', data);
-        if (!data.updatedProduct) {
-          console.warn("Brak updatedProduct w odpowiedzi z API");
-          return;
+        // Aktualizacja ilości produktu w widoku
+        if (data.updatedProduct) {
+          updateProductDOM(data.updatedProduct);
         }
-        const updatedProduct = data.updatedProduct;
-        updateProductDOM(updatedProduct);
         updateCartWidgetCount();
-        if (updatedProduct.quantity <= 0) {
-          const elem = document.querySelector(`.product-item[data-id="${updatedProduct._id}"]`);
-          if (elem) elem.remove();
-        }
         showNotification('Dodano do koszyka!');
       } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
       }
     }
     
-    // Funkcja aktualizująca widoczność produktu w DOM (API)
-    function updateProductDOM(updatedProduct) {
-      // Konwertujemy _id do stringa
-      const productId = updatedProduct._id.toString();
-      // Wyszukujemy element na podstawie atrybutu data-id
-      const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
-      if (productElement) {
-        const currentDataId = productElement.getAttribute('data-id');
-        console.log("Element znaleziony. data-id w DOM:", currentDataId, "| updatedProduct._id:", productId);
-        const quantityElement = productElement.querySelector('.product-quantity');
-        if (quantityElement) {
-          quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-          console.log("Zaktualizowano ilość produktu w DOM dla id", productId, "na:", updatedProduct.quantity);
-        } else {
-          console.warn("Nie znaleziono elementu .product-quantity dla produktu", productId);
-        }
-        if (updatedProduct.quantity <= 0) {
-          const btn = productElement.querySelector('.add-to-cart-btn');
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Niedostępne';
-          }
-        }
-      } else {
-        console.warn("Nie znaleziono elementu .product-item dla data-id:", productId);
-      }
-    }
-    
-    // Funkcja aktualizująca licznik koszyka
+    // Funkcja aktualizująca widżet koszyka (licznik)
     function updateCartWidgetCount() {
       updateCart();
     }
@@ -176,6 +141,29 @@
         .catch(error => {
           console.error('Błąd przy aktualizacji koszyka:', error);
         });
+    }
+    
+    // Funkcja aktualizująca wyświetlaną ilość produktu w DOM
+    function updateProductDOM(updatedProduct) {
+      const productId = updatedProduct._id.toString();
+      const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
+      if (productElement) {
+        const quantityElement = productElement.querySelector('.product-quantity');
+        if (quantityElement) {
+          quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
+          console.log(`Zaktualizowano ilość produktu ${productId} na: ${updatedProduct.quantity}`);
+        }
+        // Jeśli ilość spadnie do zera lub poniżej, dezaktywujemy przycisk dodawania
+        if (updatedProduct.quantity <= 0) {
+          const btn = productElement.querySelector('.add-to-cart-btn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Niedostępne';
+          }
+        }
+      } else {
+        console.warn(`Nie znaleziono elementu produktu dla data-id: ${productId}`);
+      }
     }
     
     // Powiadomienie
