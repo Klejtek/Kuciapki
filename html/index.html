@@ -58,14 +58,16 @@
       updateCartWidgetCount();
     });
 
-    // Funkcja pobierająca listę produktów z API (dodajemy parametr do cache bustingu)
+    // Funkcja pobierająca listę produktów z API (dodajemy cache busting)
     async function refreshProductList() {
       try {
-        const response = await fetch('/api/products?t=' + Date.now());
+        console.log("Odświeżam listę produktów...");
+        const response = await fetch('/api/products?t=' + Date.now(), { cache: 'no-store' });
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const products = await response.json();
+        console.log("Pobrane produkty:", products);
         const productList = document.getElementById('product-list');
         productList.innerHTML = ''; // Czyścimy zawartość
 
@@ -92,7 +94,7 @@
       }
     }
 
-    // Funkcja dodająca produkt do koszyka (API)
+    // Funkcja dodająca produkt do koszyka (wywołuje API, a następnie odświeża listę)
     async function addToCart(productId) {
       const userId = localStorage.getItem('userId');
       const quantity = 1;
@@ -115,11 +117,13 @@
           alert(err.message || 'Błąd przy dodawaniu do koszyka');
           return;
         }
-        // Po udanym dodaniu odświeżamy listę produktów z opóźnieniem 300 ms
+        const data = await response.json();
+        console.log('Odpowiedź z API (addToCart):', data);
+        // Odczekujemy 500 ms, aby baza na pewno zapisała zmiany, a następnie odświeżamy listę produktów
         setTimeout(() => {
           refreshProductList();
           updateCartWidgetCount();
-        }, 300);
+        }, 500);
         showNotification('Dodano do koszyka!');
       } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
@@ -135,7 +139,7 @@
     function updateCart() {
       const userId = localStorage.getItem('userId');
       if (!userId) return;
-      fetch(`/api/cart/${userId}`)
+      fetch(`/api/cart/${userId}`, { cache: 'no-store' })
         .then(response => response.json())
         .then(cartItems => {
           const cartCountElem = document.getElementById('cart-count');
