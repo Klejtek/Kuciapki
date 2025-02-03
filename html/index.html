@@ -58,10 +58,9 @@
       updateCartWidgetCount();
     });
 
-    // Funkcja pobierająca listę produktów z API (z cache busting) i renderująca je
+    // Funkcja pobierająca listę produktów z API (dodajemy parametr do cache bustingu)
     async function refreshProductList() {
       try {
-        // Dodajemy parametr, aby uniknąć cache (cache busting)
         const response = await fetch('/api/products?t=' + Date.now());
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -116,12 +115,11 @@
           alert(err.message || 'Błąd przy dodawaniu do koszyka');
           return;
         }
-        // Opcjonalnie pobieramy odpowiedź – ale zamiast aktualizować tylko jeden element,
-        // możemy odświeżyć całą listę produktów po niewielkim opóźnieniu.
+        // Po udanym dodaniu odświeżamy listę produktów z opóźnieniem 300 ms
         setTimeout(() => {
           refreshProductList();
           updateCartWidgetCount();
-        }, 100);  // opóźnienie 100 ms
+        }, 300);
         showNotification('Dodano do koszyka!');
       } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
