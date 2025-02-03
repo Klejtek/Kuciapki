@@ -6,6 +6,13 @@
   <title>Sklep z Aromatami</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="/manifest.json">
+  <style>
+    /* Dodajemy tymczasową klasę, aby wymusić reflow */
+    .force-reflow {
+      /* Możemy np. zmienić opacity */
+      opacity: 0.99;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -34,7 +41,7 @@
   </footer>
   
   <script>
-    // Inicjalizacja – pobranie i renderowanie listy produktów przy załadowaniu strony
+    // Inicjalizacja – przy załadowaniu strony renderujemy listę produktów oraz licznik koszyka
     document.addEventListener('DOMContentLoaded', async function() {
       const loggedInUser = localStorage.getItem('loggedInUser');
       const logoutButton = document.getElementById('logout-button');
@@ -53,12 +60,12 @@
         window.location.href = 'login.html';
       });
 
-      // Renderujemy listę produktów
+      // Od razu renderujemy listę produktów i licznik koszyka
       refreshProductList();
       updateCartWidgetCount();
     });
 
-    // Funkcja pobierająca listę produktów z API (dodajemy cache busting)
+    // Funkcja pobierająca listę produktów z API (używamy cache busting, by zawsze pobierać najnowsze dane)
     async function refreshProductList() {
       try {
         console.log("Odświeżam listę produktów...");
@@ -69,13 +76,13 @@
         const products = await response.json();
         console.log("Pobrane produkty:", products);
         const productList = document.getElementById('product-list');
-        productList.innerHTML = ''; // Czyścimy zawartość
+        productList.innerHTML = ''; // Czyścimy zawartość kontenera
 
         products.forEach(product => {
           if (product.available) {
             const productItem = document.createElement('div');
             productItem.className = 'product-item';
-            // Ustawiamy atrybut data-id, aby później móc odnaleźć ten element
+            // Ustawiamy atrybut data-id, aby później móc odnaleźć dany produkt (jeśli to potrzebne)
             productItem.setAttribute('data-id', product._id.toString());
 
             productItem.innerHTML = `
@@ -89,12 +96,18 @@
             productList.appendChild(productItem);
           }
         });
+
+        // Wymuszenie reflow – tymczasowo dodajemy klasę, a następnie ją usuwamy
+        productList.classList.add('force-reflow');
+        setTimeout(() => {
+          productList.classList.remove('force-reflow');
+        }, 10);
       } catch (error) {
         console.error('Błąd przy odświeżaniu listy produktów:', error);
       }
     }
 
-    // Funkcja dodająca produkt do koszyka (wywołuje API, a następnie aktualizuje widok)
+    // Funkcja dodająca produkt do koszyka – po udanym dodaniu odświeżamy całą listę produktów
     async function addToCart(productId) {
       const userId = localStorage.getItem('userId');
       const quantity = 1;
@@ -119,15 +132,10 @@
         }
         const data = await response.json();
         console.log('Odpowiedź z API (addToCart):', data);
-        // Jeśli backend zwrócił zaktualizowany produkt, aktualizujemy tylko jego widok
-        if (data.updatedProduct) {
-          updateProductDOM(data.updatedProduct);
-        }
-        // Dodatkowo, dla pewności, odświeżamy całą listę produktów po 500 ms
-        setTimeout(() => {
-          refreshProductList();
-          updateCartWidgetCount();
-        }, 500);
+
+        // Po udanym dodaniu produktu do koszyka, odświeżamy całą listę produktów
+        refreshProductList();
+        updateCartWidgetCount();
         showNotification('Dodano do koszyka!');
       } catch (error) {
         console.error('Błąd przy dodawaniu do koszyka (API):', error);
@@ -165,36 +173,6 @@
       setTimeout(() => {
         notification.classList.remove('show');
       }, 3000);
-    }
-
-    // Funkcja debugująca, wymuszająca reflow i aktualizująca pojedynczy element produktu
-    function updateProductDOM(updatedProduct) {
-      const productId = updatedProduct._id.toString();
-      console.log("Próbuję zaktualizować produkt o data-id:", productId);
-      
-      const productElement = document.querySelector(`.product-item[data-id="${productId}"]`);
-      if (productElement) {
-        const quantityElement = productElement.querySelector('.product-quantity');
-        if (quantityElement) {
-          console.log("Przed aktualizacją, ilość:", quantityElement.textContent);
-          quantityElement.textContent = `Ilość dostępna: ${updatedProduct.quantity}`;
-          console.log("Po aktualizacji, ilość:", quantityElement.textContent);
-          
-          // Wymuszenie reflow: tymczasowo ukrywamy i pokazujemy element
-          productElement.style.display = 'none';
-          productElement.offsetHeight; // Odczyt tej właściwości wymusza reflow
-          productElement.style.display = '';
-        }
-        if (updatedProduct.quantity <= 0) {
-          const btn = productElement.querySelector('.add-to-cart-btn');
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Niedostępne';
-          }
-        }
-      } else {
-        console.warn(`Nie znaleziono elementu produktu dla data-id: ${productId}`);
-      }
     }
   </script>
 </body>
