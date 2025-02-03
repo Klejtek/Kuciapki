@@ -55,12 +55,13 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Model Koszyka (z dodanym polem createdAt)
+// Model Koszyka
+// Dodajemy pole createdAt, aby zapisywać datę dodania pozycji do koszyka
 const cartItemSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   quantity: { type: Number, default: 1 },
-  createdAt: { type: Date, default: Date.now }  // Data dodania pozycji do koszyka
+  createdAt: { type: Date, default: Date.now }
 });
 const Cart = mongoose.model('Cart', cartItemSchema);
 
@@ -86,7 +87,8 @@ const Order = mongoose.model('Order', orderSchema);
 
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await Product.find();
+    // Zwracamy tylko produkty, których ilość jest większa od 0.
+    const products = await Product.find({ quantity: { $gt: 0 } });
     res.status(200).json(products);
   } catch (error) {
     res.status(400).json({ message: 'Error fetching products', error });
@@ -163,13 +165,14 @@ app.post('/api/cart', async (req, res) => {
     let cartItem = await Cart.findOne({ userId, productId });
     if (cartItem) {
       cartItem.quantity += quantity;
-      cartItem.createdAt = Date.now(); // aktualizujemy datę dodania, aby przedłużyć czas rezerwacji
+      // Aktualizujemy datę, aby resetować odliczanie
+      cartItem.createdAt = Date.now();
     } else {
       cartItem = new Cart({ userId, productId, quantity });
     }
     await cartItem.save();
 
-    // 5. Zwróć dane (koszyk i aktualny stan produktu)
+    // 5. Zwróć dane (koszyk oraz aktualny stan produktu)
     res.status(200).json({
       cartItem,
       updatedProduct: product
@@ -199,20 +202,17 @@ app.get('/api/cart/:userId', async (req, res) => {
 app.delete('/api/cart/:userId/:productId', async (req, res) => {
   const { userId, productId } = req.params;
   try {
-    // Znajdź pozycję w koszyku
     const cartItem = await Cart.findOne({ userId, productId });
     if (!cartItem) {
       return res.status(404).json({ message: 'Produkt nie został znaleziony w koszyku' });
     }
 
-    // Przywróć ilość do magazynu
     const product = await Product.findById(productId);
     if (product) {
       product.quantity += cartItem.quantity;
       await product.save();
     }
 
-    // Usuń element z koszyka
     await Cart.findOneAndDelete({ userId, productId });
     res.status(200).json({
       message: 'Produkt został usunięty z koszyka',
@@ -227,7 +227,6 @@ app.delete('/api/cart/:userId/:productId', async (req, res) => {
 app.delete('/api/cart/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    // Przywracamy ilość dla każdego elementu w koszyku
     const cartItems = await Cart.find({ userId });
     for (const cartItem of cartItems) {
       const product = await Product.findById(cartItem.productId);
@@ -302,21 +301,16 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   const { userId } = req.body;
   try {
-    // 1. Pobierz pozycje koszyka
     const cartItems = await Cart.find({ userId });
     if (cartItems.length === 0) {
       return res.status(400).json({ message: 'Koszyk jest pusty' });
     }
-
-    // 2. (Opcjonalnie) Sprawdzenie, czy produkty nadal istnieją
     for (const cartItem of cartItems) {
       const product = await Product.findById(cartItem.productId);
       if (!product) {
         return res.status(404).json({ message: 'Nie znaleziono produktu w bazie' });
       }
     }
-
-    // 3. Utwórz zamówienie
     const order = new Order({
       userId,
       products: cartItems.map(item => ({
@@ -325,8 +319,6 @@ app.post('/api/orders', async (req, res) => {
       }))
     });
     await order.save();
-
-    // 4. Wyczyść koszyk
     await Cart.deleteMany({ userId });
     res.status(200).json({ message: 'Zamówienie zostało złożone', order });
   } catch (error) {
@@ -449,6 +441,30 @@ app.delete('/api/clear-summary', async (req, res) => {
   }
 });
 
+// ------ Mechanizm automatycznego przywracania pozycji koszyka ------
+// Co minutę sprawdzamy, czy w koszyku są pozycje starsze niż 15 minut.
+// Jeśli tak, przywracamy ich ilość do magazynu i usuwamy te pozycje z koszyka.
+setInterval(async () => {
+  try {
+    const expirationTime = new Date(Date.now() - 15 * 60 * 1000); // 15 minut temu
+    const expiredCartItems = await Cart.find({ createdAt: { $lt: expirationTime } });
+    
+    for (const cartItem of expiredCartItems) {
+      const product = await Product.findById(cartItem.productId);
+      if (product) {
+        product.quantity += cartItem.quantity;
+        await product.save();
+      }
+      await Cart.findByIdAndDelete(cartItem._id);
+    }
+    if (expiredCartItems.length > 0) {
+      console.log(`Przywrócono ${expiredCartItems.length} przeterminowanych pozycji koszyka.`);
+    }
+  } catch (error) {
+    console.error("Błąd podczas przywracania przeterminowanych pozycji koszyka:", error);
+  }
+}, 60 * 1000);  // Wykonuj co 60 sekund
+
 // ------ Obsługa plików HTML ------
 
 app.get('/', (req, res) => {
@@ -529,38 +545,6 @@ app.delete('/api/orders/:userId/by-date/:date', async (req, res) => {
   }
 });
 
-
-//--------------------------------------------------------
-// Mechanizm automatycznego przywracania pozycji koszyka
-//--------------------------------------------------------
-setInterval(async () => {
-  try {
-    // Obliczamy datę, przed którą pozycje uznajemy za przeterminowane (15 minut temu)
-    const expirationTime = new Date(Date.now() - 15 * 60 * 1000);
-
-    // Znajdujemy wszystkie pozycje koszyka, które zostały dodane przed tą datą
-    const expiredCartItems = await Cart.find({ createdAt: { $lt: expirationTime } });
-
-    for (const cartItem of expiredCartItems) {
-      // Znajdź produkt, którego dotyczy pozycja koszyka
-      const product = await Product.findById(cartItem.productId);
-      if (product) {
-        // Przywracamy zarezerwowaną ilość produktu do magazynu
-        product.quantity += cartItem.quantity;
-        await product.save();
-      }
-      // Usuwamy przeterminowaną pozycję z koszyka
-      await Cart.findByIdAndDelete(cartItem._id);
-    }
-    if (expiredCartItems.length > 0) {
-      console.log(`Przywrócono ${expiredCartItems.length} przeterminowanych pozycji koszyka.`);
-    }
-  } catch (error) {
-    console.error("Błąd podczas przywracania przeterminowanych pozycji koszyka:", error);
-  }
-}, 60 * 1000);  // Uruchamiamy co 60 sekund
-
-// Uruchomienie serwera
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
 });
